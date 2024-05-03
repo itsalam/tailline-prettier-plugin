@@ -114,7 +114,7 @@ export const GROUPED_PROPS: Record<string, string[]> = {
 
   listStyles: ["list-style-position", "list-style-type", "list-style-image"],
 
-  appearanceControl: [
+  layout: [
     "appearance",
     "columns",
     "break-before",
@@ -268,15 +268,14 @@ export const GROUPED_PROPS: Record<string, string[]> = {
     "-webkit-font-smoothing",
   ],
 
-  colorControl: [
+  accentColors: [
     "placeholder-color",
     "--tw-placeholder-opacity",
     "caret-color",
     "accent-color",
-    "opacity",
-    "background-blend-mode",
-    "mix-blend-mode",
   ],
+
+  transparency: ["opacity", "background-blend-mode", "mix-blend-mode"],
 
   shadowFilterEffects: [
     "box-shadow",

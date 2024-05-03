@@ -77,7 +77,7 @@ const createMultilineClassString = (
 
   for (let i = 1; i < sortedClasses.length; i++) {
     const groupClassNames = sortedClasses[i][1];
-    while (
+    if (
       indent(
         [
           ...currClassNames,
@@ -126,12 +126,20 @@ type ClassNameWithOrder = {
   props: PropRanking;
 };
 
-export function sortClassList(classList, { env }): Record<string, string[]> {
+export function sortClassList(
+  classList,
+  { env }: SortOptions
+): Record<string, string[]> {
   let classNamesWithOrder = env.context.getClassOrder(classList);
   const groups = new DefaultMap<number, ClassNameWithOrder[]>(() => []);
   classNamesWithOrder.forEach(([className]) => {
     try {
       const candidate = env.context.parseCandidate(className);
+      const variant = env.context.parseVariant(className);
+      // Figure out variants, wait for tailwind v4 documentation?
+      // if (variant) {
+      //   const func = env.context.utilities.get(variant.root);
+      // }
       const func = env.context.utilities.get(candidate?.root);
       const compileRes = func?.compileFn(candidate);
       if (!compileRes) {

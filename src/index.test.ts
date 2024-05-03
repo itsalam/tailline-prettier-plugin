@@ -3,7 +3,6 @@ import prettier from "prettier";
 import TypescriptPlugin from "./index.js";
 
 function collectStringLiterals(node, literals = []) {
-  // console.log(node);
   if (node.type === "Literal" && typeof node.value === "string") {
     literals.push(node.value);
   }
@@ -17,6 +16,25 @@ function collectStringLiterals(node, literals = []) {
     }
   }
   return literals;
+}
+
+function findJSXAttribute(node, attributeName) {
+  if (node.type === "JSXAttribute" && node.name.name === attributeName) {
+    return node;
+  }
+  for (const key in node) {
+    if (
+      node.hasOwnProperty(key) &&
+      typeof node[key] === "object" &&
+      node[key] !== null
+    ) {
+      const result = findJSXAttribute(node[key], attributeName);
+      if (result) {
+        return result;
+      }
+    }
+  }
+  return null;
 }
 
 const tsParserOptions: ParserOptions = {
@@ -77,38 +95,79 @@ describe("Changes on..", () => {
     } catch (error) {
       // Fail the test with a specific error message
       expect(error).toBeUndefined();
-      console.log(error);
+      console.error(error);
     }
   });
 
-  test("className attribute sorted but OOBs", async () => {
+  describe("className attribute sorted but OOBs", () => {
     const code = `<div className="rounded-xl bg-black dark:bg-white py-2 px-4 text-xs font-bold dark:text-black text-white"/>`;
-    const formatted = await prettier.format(code, {
-      parser: "typescript",
-    });
-    const formattedWithPlugin = await prettier.format(code, {
-      parser: "typescript",
-      plugins: [TypescriptPlugin],
+    let formatted;
+    let formattedWithPlugin;
+    beforeAll(async () => {
+      formatted = await prettier.format(code, {
+        parser: "typescript",
+      });
+      formattedWithPlugin = await prettier.format(code, {
+        parser: "typescript",
+        plugins: [TypescriptPlugin],
+      });
     });
 
-    try {
-      const rawResults = parse(formatted, tsParserOptions);
-      const rawLiterals = collectStringLiterals(rawResults).flatMap((literal) =>
-        literal.split(" ")
-      );
-      const pluginResults = parse(formattedWithPlugin, tsParserOptions);
-      const pluginClassGroups = collectStringLiterals(pluginResults);
-      const pluginLiterals = pluginClassGroups.flatMap((literal) =>
-        literal.split(" ")
-      );
-      expect(formattedWithPlugin).not.toBe(formatted);
-      expect(rawLiterals).toEqual(pluginLiterals);
-      expect(pluginClassGroups.length).toBeGreaterThan(1);
-    } catch (error) {
-      // Fail the test with a specific error message
-      expect(error).toBeUndefined();
-      console.log(error);
-    }
+    test("raw and plugin output should not be the same", async () => {
+      try {
+        expect(formattedWithPlugin).not.toBe(formatted);
+      } catch (error) {
+        expect(error).toBeUndefined();
+        console.error(error);
+      }
+    });
+
+    test("all elements in both arrays should be equal", async () => {
+      try {
+        const rawResults = parse(formatted, tsParserOptions);
+        const rawLiterals = collectStringLiterals(rawResults).flatMap(
+          (literal) => literal.split(" ")
+        );
+        const pluginResults = parse(formattedWithPlugin, tsParserOptions);
+        const pluginClassGroups = collectStringLiterals(pluginResults);
+        const pluginLiterals = pluginClassGroups.flatMap((literal) =>
+          literal.split(" ")
+        );
+        expect(rawLiterals).toEqual(pluginLiterals);
+      } catch (error) {
+        expect(error).toBeUndefined();
+        console.error(error);
+      }
+    });
+
+    test("# of grouped classes should be greater than 1", async () => {
+      try {
+        const pluginResults = parse(formattedWithPlugin, tsParserOptions);
+        const pluginClassGroups = collectStringLiterals(pluginResults);
+        expect(pluginClassGroups.length).toBeGreaterThan(1);
+      } catch (error) {
+        expect(error).toBeUndefined();
+        console.error(error);
+      }
+    });
+
+    test("plugin classNames should convert from literal to expression", async () => {
+      try {
+        const rawResults = parse(formatted, tsParserOptions);
+        const pluginResults = parse(formattedWithPlugin, tsParserOptions);
+        const pluginClassNamesNode = findJSXAttribute(
+          pluginResults,
+          "className"
+        );
+        const rawClassNamesNode = findJSXAttribute(rawResults, "className");
+        expect(pluginClassNamesNode.value.type).not.toEqual(
+          rawClassNamesNode.value.type
+        );
+      } catch (error) {
+        expect(error).toBeUndefined();
+        console.error(error);
+      }
+    });
   });
 
   test("className attribute unsorted and OOBs", async () => {
@@ -137,7 +196,7 @@ describe("Changes on..", () => {
     } catch (error) {
       // Fail the test with a specific error message
       expect(error).toBeUndefined();
-      console.log(error);
+      console.error(error);
     }
   });
 
@@ -167,7 +226,6 @@ describe("Changes on..", () => {
       const pluginLiterals = pluginClassGroups.flatMap((literal) =>
         literal.split(" ")
       );
-      console.log({ formattedWithPlugin });
       expect(formattedWithPlugin).not.toBe(formatted);
       expect(rawLiterals).not.toEqual(pluginLiterals);
       expect(new Set(rawLiterals)).toEqual(new Set(pluginLiterals));
@@ -175,130 +233,7 @@ describe("Changes on..", () => {
     } catch (error) {
       // Fail the test with a specific error message
       expect(error).toBeUndefined();
-      console.log(error);
+      console.error(error);
     }
   });
 });
-
-// ruleTester.run("my-rule", rule, {
-//   valid: [
-//     // valid tests can be a raw string,
-
-//     // or they can be an object
-//     // {
-//     //   code: "const y = 2;",
-//     //   options: [{ ruleOption: true }],
-//     // },
-
-//     // you can enable JSX parsing by passing parserOptions.ecmaFeatures.jsx = true
-//     {
-//       code: `<div
-//         translateZ="50"
-//         className="text-xl font-bold text-neutral-600 dark:text-white"
-//       />`,
-//       parserOptions: {
-//         ecmaFeatures: {
-//           jsx: true,
-//         },
-//       },
-//     },
-//   ],
-//   invalid: [
-//     // invalid tests must always be an object
-//     {
-//       // Unsorted
-//       code: `<div className="w-full mt-4"/>`,
-//       // invalid tests must always specify the expected errors
-//       parserOptions: {
-//         ecmaFeatures: {
-//           jsx: true,
-//         },
-//       },
-//       output: `<div className="mt-4 w-full"/>`,
-//       errors: [
-//         {
-//           messageId: "notSorted",
-//           // If applicable - it's recommended that you also assert the data in
-//           // addition to the messageId so that you can ensure the correct message
-//           // is generated
-//           data: {
-//             // placeholder1: "a",
-//           },
-//         },
-//       ],
-//     },
-//     {
-//       // Sorted, OOB
-//       code: `<div className="rounded-xl bg-black dark:bg-white py-2 px-4 text-xs font-bold dark:text-black text-white"/>`,
-//       // invalid tests must always specify the expected errors
-//       parserOptions: {
-//         ecmaFeatures: {
-//           jsx: true,
-//         },
-//       },
-//       output: `<div className={
-//           "rounded-xl" + // border
-//           "bg-black dark:bg-white py-2 px-4" + // background, padding
-//           "text-xs font-bold dark:text-black text-white" // textStyles
-//         }/>`,
-//       errors: [
-//         {
-//           messageId: "auto-fix",
-//           // If applicable - it's recommended that you also assert the data in
-//           // addition to the messageId so that you can ensure the correct message
-//           // is generated
-//           data: {
-//             placeholder1: "a",
-//           },
-//         },
-//       ],
-//     },
-//     {
-//       // Unsorted and OOB
-//       code: `<div className="bg-gray-50 relative group/card dark:hover:shadow-2xl dark:hover:shadow-emerald-500/[0.1] dark:bg-black dark:border-white/[0.2] border-black/[0.1] w-auto sm:w-[30rem] h-auto rounded-xl p-6 border"/>`,
-//       // invalid tests must always specify the expected errors
-//       parserOptions: {
-//         ecmaFeatures: {
-//           jsx: true,
-//         },
-//       },
-//       output: `<div
-//         className={
-//           "group/card" +
-//           "relative h-auto w-auto sm:w-[30rem]" + // basicStyles, sizing
-//           "rounded-xl dark:border-white/[0.2] border-black/[0.1]" + // border
-//           "bg-gray-50 dark:bg-black p-6" + // background, padding
-//           "dark:hover:shadow-2xl dark:hover:shadow-emerald-500/[0.1] border" // rules
-//         }
-//       />`,
-//       errors: [
-//         {
-//           messageId: "auto-fix",
-//           // If applicable - it's recommended that you also assert the data in
-//           // addition to the messageId so that you can ensure the correct message
-//           // is generated
-//           // data: {
-//           //   placeholder1: "a",
-//           // },
-//         },
-//       ],
-//     },
-
-//     // // suggestions can be tested via errors
-//     // {
-//     //   code: "const d = 1;",
-//     //   output: null,
-//     //   errors: [
-//     //     {
-//     //       messageId: "suggestionError",
-//     //       suggestions: [
-//     //         {
-//     //           messageId: "suggestionOne",
-//     //           output: "const e = 1;",
-//     //         },
-//     //       ],
-//     //     },
-//     //   ],
-//     // },
-//   ],
-// });
