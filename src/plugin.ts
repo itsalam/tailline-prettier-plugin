@@ -34,7 +34,7 @@ export class TypescriptPlugin {
       async parse(text: string, options: ParserOptions) {
         await plugin.printer.initializeDefaultPrinter(options);
         let ast = await original.parse(text, options);
-        const { context } = await getTailwindConfig(options);
+        const context = await getTailwindConfig(options);
         let changes = [];
         transformJavaScript(ast, {
           env: { context, options },

@@ -24,9 +24,15 @@ export interface TransformerContext {
   changes: { text: string; loc: any }[];
 }
 
-export type DesignSystem = ReturnType<typeof __unstable__loadDesignSystem>;
+export type DesignSystem = ReturnType<typeof __unstable__loadDesignSystem> & {
+  generateRules?: (
+    candidates: string[],
+    context: ReturnType<typeof __unstable__loadDesignSystem>,
+    isSorting?: boolean
+  ) => string[];
+};
 export interface TransformerEnv {
-  context: ReturnType<typeof __unstable__loadDesignSystem>;
+  context: DesignSystem;
   // customizations?: Customizations;
   // parsers: Parser[];
   options: ParserOptions;

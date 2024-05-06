@@ -1,3 +1,4 @@
+import clearModule from "clear-module";
 import escalade from "escalade/sync";
 import * as fs from "fs/promises";
 import { createRequire } from "module";
@@ -7,6 +8,7 @@ import postcssImport from "postcss-import";
 import prettier from "prettier";
 import { __unstable__loadDesignSystem } from "tailwindcss";
 import { pathToFileURL } from "url";
+import { DesignSystem } from "./types.js";
 
 export const CLASS_NAME_ATTRS = ["className", "class"];
 export const CALL_EXPRESSIONS = ["cn", "clsx", "twMerge"];
@@ -44,10 +46,10 @@ export async function getTailwindConfig(options) {
   let prettierConfigPath = await getPrettierConfigPath(options);
   let baseDir = await getBaseDir(options);
 
-  let configPath = sourceToPathMap.get(key);
-  if (configPath === undefined) {
-    configPath = await getConfigPath(options, baseDir);
-    sourceToPathMap.set(key, configPath);
+  let twPkgPath = sourceToPathMap.get(key);
+  if (twPkgPath === undefined) {
+    twPkgPath = await getConfigPath(options, baseDir);
+    sourceToPathMap.set(key, twPkgPath);
   }
 
   let entryPoint = sourceToEntryMap.get(key);
@@ -56,14 +58,14 @@ export async function getTailwindConfig(options) {
     sourceToEntryMap.set(key, entryPoint);
   }
 
-  let contextKey = `${configPath}:${entryPoint}`;
-  let existing = pathToContextMap.get(contextKey);
+  let contextKey = `${twPkgPath}:${entryPoint}`;
+  let existing = pathToContextMap.get(contextKey) as DesignSystem;
   if (existing) {
     return existing;
   }
 
   // By this point we know we need to load the Tailwind config file
-  let result = await loadTailwindConfig(baseDir, configPath, entryPoint);
+  let result = await loadTailwindConfig(baseDir, twPkgPath, entryPoint);
 
   pathToContextMap.set(contextKey, result);
   return result;
@@ -99,14 +101,77 @@ async function getConfigPath(options, baseDir) {
   return null;
 }
 
-async function loadTailwindConfig(baseDir, tailwindConfigPath, entryPoint) {
-  let pkgFile = localRequire.resolve("tailwindcss/package.json", {
-    paths: [baseDir],
-  });
+async function loadTailwindConfig(
+  baseDir,
+  tailwindConfigPath,
+  entryPoint
+): Promise<DesignSystem> {
+  let createContext;
+  let generateRules;
+  let resolveConfig;
+  let loadConfig;
+  let tailwindConfig = {};
 
-  let pkgDir = path.dirname(pkgFile);
+  const getModulePath = (pathStr) =>
+    path.dirname(
+      localRequire.resolve(pathStr, {
+        paths: [baseDir],
+      })
+    );
 
-  return await loadTWV4(baseDir, pkgDir, entryPoint);
+  let tw4 = await loadTWV4(
+    baseDir,
+    getModulePath("tailwindcss/package.json"),
+    entryPoint
+  );
+
+  if (tw4) {
+    return tw4;
+  }
+  // Load v3
+  try {
+    resolveConfig = (
+      await import(
+        path.join(
+          getModulePath("tailwindcss/resolveConfig.js"),
+          "resolveConfig.js"
+        )
+      )
+    ).default;
+    ({ createContext } = (
+      await import(
+        path.join(getModulePath("tailwindcss"), "lib", "setupContextUtils.js")
+      )
+    ).default);
+    ({ generateRules } = (
+      await import(
+        path.join(getModulePath("tailwindcss"), "lib", "generateRules.js")
+      )
+    ).default);
+
+    loadConfig = (
+      await import(
+        path.join(getModulePath("tailwindcss/loadConfig"), "loadConfig.js")
+      )
+    ).default;
+  } catch {}
+  if (tailwindConfigPath) {
+    clearModule(tailwindConfigPath);
+    const loadedConfig = loadConfig(tailwindConfigPath);
+    tailwindConfig = loadedConfig.default ?? loadedConfig;
+  }
+  // @ts-ignore
+  tailwindConfig.content = ["no-op"];
+  const parseCandidate = (candidate) => {
+    return createContext(resolveConfig(tailwindConfig)).parseCandidate(
+      candidate
+    );
+  };
+  let context = {
+    ...createContext(resolveConfig(tailwindConfig)),
+    generateRules,
+  };
+  return context as DesignSystem;
 }
 
 async function loadTWV4(baseDir, pkgDir, entryPoint) {
@@ -134,11 +199,5 @@ async function loadTWV4(baseDir, pkgDir, entryPoint) {
   let design = tw.__unstable__loadDesignSystem(result.css) as ReturnType<
     typeof __unstable__loadDesignSystem
   >;
-  return {
-    context: {
-      ...design,
-    },
-    // Stubs that are not needed for v4
-    generateRules: () => [],
-  };
+  return design;
 }

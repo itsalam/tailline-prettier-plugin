@@ -86,7 +86,7 @@ export class CustomPrinter implements Printer<Node> {
     if (this._context) {
       return this._context;
     }
-    const { context } = await getTailwindConfig(options);
+    const context = await getTailwindConfig(options);
     this._context = context;
     return this._context;
   }

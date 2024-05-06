@@ -134,15 +134,23 @@ export function sortClassList(
   const groups = new DefaultMap<number, ClassNameWithOrder[]>(() => []);
   classNamesWithOrder.forEach(([className]) => {
     try {
-      const candidate = env.context.parseCandidate(className);
-      const variant = env.context.parseVariant(className);
-      // Figure out variants, wait for tailwind v4 documentation?
-      // if (variant) {
-      //   const func = env.context.utilities.get(variant.root);
-      // }
-      const func = env.context.utilities.get(candidate?.root);
-      const compileRes = func?.compileFn(candidate);
-      if (!compileRes) {
+      let property;
+      if (!env.context.parseCandidate) {
+        property = env.context
+          .generateRules([className], env.context, false)
+          .map((c) => c[1].nodes[0].prop)[0];
+      } else {
+        const candidate = env.context.parseCandidate(className);
+        const variant = env.context.parseVariant(className);
+        // Figure out variants, wait for tailwind v4 documentation?
+        // if (variant) {
+        //   const func = env.context.utilities.get(variant.root);
+        // }
+        const func = env.context.utilities.get(candidate?.root);
+        const compileRes = func?.compileFn?.(candidate);
+        property = compileRes?.[0].property ?? null;
+      }
+      if (!property) {
         const currGroup = groups.get(-1);
         groups.set(
           -1,
@@ -152,8 +160,7 @@ export function sortClassList(
           })
         );
       } else {
-        const res = compileRes[0];
-        const props = getPropertyDetails(res.property);
+        const props = getPropertyDetails(property);
         if (props) {
           const currGroup = groups.get(props.globalRank);
           groups.set(props.globalRank, currGroup.concat({ props, className }));
