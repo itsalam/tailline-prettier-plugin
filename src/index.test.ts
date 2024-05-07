@@ -60,13 +60,8 @@ Make things float in air
       plugins: [TypescriptPlugin],
     });
 
-    try {
-      parse(formattedWithPlugin, tsParserOptions);
-      expect(formattedWithPlugin).toBe(formatted);
-    } catch (error) {
-      // Fail the test with a specific error message
-      expect(error).toBeUndefined();
-    }
+    parse(formattedWithPlugin, tsParserOptions);
+    expect(formattedWithPlugin).toBe(formatted);
   });
 });
 
@@ -81,22 +76,16 @@ describe("Changes on..", () => {
       plugins: [TypescriptPlugin],
     });
 
-    try {
-      parse(formattedWithPlugin, tsParserOptions);
-      expect(formattedWithPlugin).not.toBe(formatted);
-      const classNameRes = classNameRegex.exec(formatted);
-      const sortedClassNameRes = classNameRegex.exec(formattedWithPlugin);
-      const className = classNameRes?.[1];
-      const sortedClassName = sortedClassNameRes?.[1];
-      expect(className.split(" ")).toEqual(
-        expect.arrayContaining(sortedClassName.split(" "))
-      );
-      expect(className.split(" ")).not.toEqual(sortedClassName.split(" "));
-    } catch (error) {
-      // Fail the test with a specific error message
-      expect(error).toBeUndefined();
-      console.error(error);
-    }
+    parse(formattedWithPlugin, tsParserOptions);
+    expect(formattedWithPlugin).not.toBe(formatted);
+    const classNameRes = classNameRegex.exec(formatted);
+    const sortedClassNameRes = classNameRegex.exec(formattedWithPlugin);
+    const className = classNameRes?.[1];
+    const sortedClassName = sortedClassNameRes?.[1];
+    expect(className.split(" ")).toEqual(
+      expect.arrayContaining(sortedClassName.split(" "))
+    );
+    expect(className.split(" ")).not.toEqual(sortedClassName.split(" "));
   });
 
   describe("className attribute sorted but OOBs", () => {
@@ -114,73 +103,10 @@ describe("Changes on..", () => {
     });
 
     test("raw and plugin output should not be the same", async () => {
-      try {
-        expect(formattedWithPlugin).not.toBe(formatted);
-      } catch (error) {
-        expect(error).toBeUndefined();
-        console.error(error);
-      }
+      expect(formattedWithPlugin).not.toBe(formatted);
     });
 
     test("all elements in both arrays should be equal", async () => {
-      try {
-        const rawResults = parse(formatted, tsParserOptions);
-        const rawLiterals = collectStringLiterals(rawResults).flatMap(
-          (literal) => literal.split(" ")
-        );
-        const pluginResults = parse(formattedWithPlugin, tsParserOptions);
-        const pluginClassGroups = collectStringLiterals(pluginResults);
-        const pluginLiterals = pluginClassGroups.flatMap((literal) =>
-          literal.split(" ")
-        );
-        expect(rawLiterals).toEqual(pluginLiterals);
-      } catch (error) {
-        expect(error).toBeUndefined();
-        console.error(error);
-      }
-    });
-
-    test("# of grouped classes should be greater than 1", async () => {
-      try {
-        const pluginResults = parse(formattedWithPlugin, tsParserOptions);
-        const pluginClassGroups = collectStringLiterals(pluginResults);
-        expect(pluginClassGroups.length).toBeGreaterThan(1);
-      } catch (error) {
-        expect(error).toBeUndefined();
-        console.error(error);
-      }
-    });
-
-    test("plugin classNames should convert from literal to expression", async () => {
-      try {
-        const rawResults = parse(formatted, tsParserOptions);
-        const pluginResults = parse(formattedWithPlugin, tsParserOptions);
-        const pluginClassNamesNode = findJSXAttribute(
-          pluginResults,
-          "className"
-        );
-        const rawClassNamesNode = findJSXAttribute(rawResults, "className");
-        expect(pluginClassNamesNode.value.type).not.toEqual(
-          rawClassNamesNode.value.type
-        );
-      } catch (error) {
-        expect(error).toBeUndefined();
-        console.error(error);
-      }
-    });
-  });
-
-  test("className attribute unsorted and OOBs", async () => {
-    const code = `<div className="rounded-xl bg-black dark:bg-white py-2 px-4 text-xs font-bold dark:text-black text-white"/>`;
-    const formatted = await prettier.format(code, {
-      parser: "typescript",
-    });
-    const formattedWithPlugin = await prettier.format(code, {
-      parser: "typescript",
-      plugins: [TypescriptPlugin],
-    });
-
-    try {
       const rawResults = parse(formatted, tsParserOptions);
       const rawLiterals = collectStringLiterals(rawResults).flatMap((literal) =>
         literal.split(" ")
@@ -190,17 +116,52 @@ describe("Changes on..", () => {
       const pluginLiterals = pluginClassGroups.flatMap((literal) =>
         literal.split(" ")
       );
-      expect(formattedWithPlugin).not.toBe(formatted);
       expect(rawLiterals).toEqual(pluginLiterals);
+    });
+
+    test("# of grouped classes should be greater than 1", async () => {
+      const pluginResults = parse(formattedWithPlugin, tsParserOptions);
+      const pluginClassGroups = collectStringLiterals(pluginResults);
       expect(pluginClassGroups.length).toBeGreaterThan(1);
-    } catch (error) {
-      // Fail the test with a specific error message
-      expect(error).toBeUndefined();
-      console.error(error);
-    }
+    });
+
+    test("plugin classNames should convert from literal to expression", async () => {
+      const rawResults = parse(formatted, tsParserOptions);
+      const pluginResults = parse(formattedWithPlugin, tsParserOptions);
+      const pluginClassNamesNode = findJSXAttribute(pluginResults, "className");
+      const rawClassNamesNode = findJSXAttribute(rawResults, "className");
+      expect(pluginClassNamesNode.value.type).not.toEqual(
+        rawClassNamesNode.value.type
+      );
+    });
   });
 
-  test("className attribute with variants", async () => {
+  test("className attribute unsorted and OOBs", async () => {
+    const code = `<div className="rounded-xl bg-black dark:bg-white py-2 mx-4 text-xs font-bold dark:text-black text-white"/>`;
+    const formatted = await prettier.format(code, {
+      parser: "typescript",
+    });
+    const formattedWithPlugin = await prettier.format(code, {
+      parser: "typescript",
+      plugins: [TypescriptPlugin],
+    });
+
+    const rawResults = parse(formatted, tsParserOptions);
+    const rawLiterals = collectStringLiterals(rawResults).flatMap((literal) =>
+      literal.split(" ")
+    );
+    const pluginResults = parse(formattedWithPlugin, tsParserOptions);
+    const pluginClassGroups = collectStringLiterals(pluginResults);
+    const pluginLiterals = pluginClassGroups.flatMap((literal) =>
+      literal.split(" ")
+    );
+    expect(formattedWithPlugin).not.toBe(formatted);
+    expect(rawLiterals).not.toEqual(pluginLiterals);
+    expect(new Set(rawLiterals)).toEqual(new Set(pluginLiterals));
+    expect(pluginClassGroups.length).toBeGreaterThan(1);
+  });
+
+  test("multiline className attribute with className utility function", async () => {
     const code = `<HoverCardPrimitive.Content
     ref={ref}
     align={align}
@@ -216,7 +177,99 @@ describe("Changes on..", () => {
       plugins: [TypescriptPlugin],
     });
 
-    try {
+    const rawResults = parse(formatted, tsParserOptions);
+    const rawLiterals = collectStringLiterals(rawResults).flatMap((literal) =>
+      literal.split(" ")
+    );
+    const pluginResults = parse(formattedWithPlugin, tsParserOptions);
+    const pluginClassGroups = collectStringLiterals(pluginResults);
+    const pluginLiterals = pluginClassGroups.flatMap((literal) =>
+      literal.split(" ")
+    );
+    expect((formattedWithPlugin.match(/,/g) || []).length).toBeGreaterThan(
+      (formatted.match(/,/g) || []).length
+    );
+    expect(formattedWithPlugin).not.toBe(formatted);
+    expect(rawLiterals).not.toEqual(pluginLiterals);
+    expect(new Set(rawLiterals)).toEqual(new Set(pluginLiterals));
+    expect(pluginClassGroups.length).toBeGreaterThan(1);
+  });
+
+  test("multiline className attribute with variants", async () => {
+    const code = `<HoverCardPrimitive.Content
+    ref={ref}
+    align={align}
+    sideOffset={sideOffset}
+    className={"z-50 w-64 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"}
+    {...props}
+  />`;
+    const formatted = await prettier.format(code, {
+      parser: "typescript",
+    });
+    const formattedWithPlugin = await prettier.format(code, {
+      parser: "typescript",
+      plugins: [TypescriptPlugin],
+    });
+
+    const rawResults = parse(formatted, tsParserOptions);
+    const rawLiterals = collectStringLiterals(rawResults).flatMap((literal) =>
+      literal.split(" ")
+    );
+    const pluginResults = parse(formattedWithPlugin, tsParserOptions);
+    const pluginClassGroups = collectStringLiterals(pluginResults);
+    const pluginLiterals = pluginClassGroups.flatMap((literal) =>
+      literal.split(" ")
+    );
+
+    expect(formatted).not.toContain("+");
+    expect(formattedWithPlugin).toContain("+");
+    expect(formattedWithPlugin).not.toBe(formatted);
+    expect(rawLiterals).not.toEqual(pluginLiterals);
+    expect(new Set(rawLiterals)).toEqual(new Set(pluginLiterals));
+    expect(pluginClassGroups.length).toBeGreaterThan(1);
+  });
+
+  describe("classNames updated with plugin", () => {
+    const codeWithClassNameInsert = (
+      classNames
+    ) => `export function ThreeDCardDemo() {
+      return (
+        <input
+          type={type}
+          // reads cn and creates a list of strings
+          className={cn(
+            "shadow-input file:border-0",
+            "dark:placeholder-text-neutral-600 focus-visible:ring-[2px]",
+            "dark:shadow-[0px_0px_1px_1px_var(--neutral-700)]",
+            "group-hover/input:shadow-none",
+            "h-10 w-full disabled:cursor-not-allowed", // sizing, interactions
+            "rounded-md bg-gray-50 dark:bg-zinc-800 file:bg-transparent", // border, background
+            "py-2 px-3", // padding
+            "text-sm file:text-sm file:font-medium text-black dark:text-white", // textStyles
+            "placeholder:text-neutral-400",
+            "disabled:opacity-50", // transparency
+            "focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-600", // outlineEffects
+            "focus-visible:outline-none",
+            "transition duration-400${classNames}", // transitionsAnimations
+            className,
+          )}
+          ref={ref}
+          {...props}
+        />
+      );
+    }`;
+
+    test("classNames with no updates", async () => {
+      const formatted = await prettier.format(codeWithClassNameInsert(""), {
+        parser: "typescript",
+      });
+      const formattedWithPlugin = await prettier.format(
+        codeWithClassNameInsert(""),
+        {
+          parser: "typescript",
+          plugins: [TypescriptPlugin],
+        }
+      );
       const rawResults = parse(formatted, tsParserOptions);
       const rawLiterals = collectStringLiterals(rawResults).flatMap((literal) =>
         literal.split(" ")
@@ -226,14 +279,112 @@ describe("Changes on..", () => {
       const pluginLiterals = pluginClassGroups.flatMap((literal) =>
         literal.split(" ")
       );
-      expect(formattedWithPlugin).not.toBe(formatted);
+
+      expect(new Set(rawLiterals)).toEqual(new Set(pluginLiterals));
+    });
+
+    test("classNames with with updates", async () => {
+      const formatted = await prettier.format(
+        codeWithClassNameInsert(" flex"),
+        {
+          parser: "typescript",
+        }
+      );
+      const formattedWithPlugin = await prettier.format(
+        codeWithClassNameInsert(" flex"),
+        {
+          parser: "typescript",
+          plugins: [TypescriptPlugin],
+        }
+      );
+
+      console.log(formattedWithPlugin, formatted);
+      const rawResults = parse(formatted, tsParserOptions);
+
+      const rawRes = collectStringLiterals(rawResults);
+      const rawLiterals = rawRes.flatMap((literal) => literal.split(" "));
+      const pluginResults = parse(formattedWithPlugin, tsParserOptions);
+      const pluginClassGroups = collectStringLiterals(pluginResults);
+      const pluginLiterals = pluginClassGroups.flatMap((literal) =>
+        literal.split(" ")
+      );
+      expect(formatted).not.toEqual(formattedWithPlugin);
       expect(rawLiterals).not.toEqual(pluginLiterals);
       expect(new Set(rawLiterals)).toEqual(new Set(pluginLiterals));
-      expect(pluginClassGroups.length).toBeGreaterThan(1);
-    } catch (error) {
-      // Fail the test with a specific error message
-      expect(error).toBeUndefined();
-      console.error(error);
-    }
+      expect(rawLiterals).not.toEqual(pluginLiterals);
+    });
+  });
+  describe("stringLiteral updated with plugin", () => {
+    const codeWithClassNameInsert = (
+      classNames
+    ) => `export function ThreeDCardDemo() {
+      return (
+        <input
+          type={type}
+          className={
+            "h-10 w-full disabled:cursor-not-allowed" + // sizing, interactions
+            "rounded-md bg-gray-50 dark:bg-zinc-800 file:bg-transparent" + // border, background
+            "py-2 px-3" + // padding
+            "transition duration-400${classNames}" // transitionsAnimations
+          }
+          ref={ref}
+          {...props}
+        />
+      );
+    }`;
+
+    test("classNames with no updates", async () => {
+      const formatted = await prettier.format(codeWithClassNameInsert(""), {
+        parser: "typescript",
+      });
+      const formattedWithPlugin = await prettier.format(
+        codeWithClassNameInsert(""),
+        {
+          parser: "typescript",
+          plugins: [TypescriptPlugin],
+        }
+      );
+      const rawResults = parse(formatted, tsParserOptions);
+      const rawLiterals = collectStringLiterals(rawResults).flatMap((literal) =>
+        literal.split(" ")
+      );
+      const pluginResults = parse(formattedWithPlugin, tsParserOptions);
+      const pluginClassGroups = collectStringLiterals(pluginResults);
+      const pluginLiterals = pluginClassGroups.flatMap((literal) =>
+        literal.split(" ")
+      );
+
+      expect(new Set(rawLiterals)).toEqual(new Set(pluginLiterals));
+    });
+
+    test("classNames with with updates", async () => {
+      const formatted = await prettier.format(
+        codeWithClassNameInsert(" flex"),
+        {
+          parser: "typescript",
+        }
+      );
+      const formattedWithPlugin = await prettier.format(
+        codeWithClassNameInsert(" flex"),
+        {
+          parser: "typescript",
+          plugins: [TypescriptPlugin],
+        }
+      );
+
+      const rawResults = parse(formatted, tsParserOptions);
+
+      const rawRes = collectStringLiterals(rawResults);
+      const rawLiterals = rawRes.flatMap((literal) => literal.split(" "));
+      const pluginResults = parse(formattedWithPlugin, tsParserOptions);
+      const pluginClassGroups = collectStringLiterals(pluginResults);
+      const pluginLiterals = pluginClassGroups.flatMap((literal) =>
+        literal.split(" ")
+      );
+      expect(formatted).not.toEqual(formattedWithPlugin);
+      expect(rawLiterals).not.toEqual(pluginLiterals);
+      expect(new Set(rawLiterals)).toEqual(new Set(pluginLiterals));
+      expect(rawLiterals).not.toEqual(pluginLiterals);
+    });
   });
 });

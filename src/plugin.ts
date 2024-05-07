@@ -36,11 +36,12 @@ export class TypescriptPlugin {
         let ast = await original.parse(text, options);
         const context = await getTailwindConfig(options);
         let changes = [];
-        transformJavaScript(ast, {
-          env: { context, options },
-          changes,
-        });
-        return ast;
+        return (
+          transformJavaScript(ast, {
+            env: { context, options },
+            changes,
+          }) ?? ast
+        );
       },
     };
   }

@@ -1,14 +1,13 @@
 import { Doc, doc } from "prettier";
 import {
-  ETC_INDEX,
   PropRanking,
   RULE_INDEX,
-  getPropertyDetails,
+  getPropertyDetails as getPropertyRanks,
 } from "./grouped-classes.js";
 import { Node, StringLiteral, TransformerEnv } from "./types.js";
 import { DefaultMap } from "./utils.js";
 
-const { line, hardline, join, group, indent, lineSuffix, fill, ifBreak, trim } =
+const { line, join, group, indent, lineSuffix, fill, ifBreak, trim } =
   doc.builders;
 
 type SortOptions = {
@@ -42,10 +41,7 @@ export function sortClasses(
     classes.pop();
   }
   const needsLineBreak =
-    Math.max(
-      (node.range?.[1] ?? 0) - (node.range?.[0] ?? 0),
-      node.loc?.end.column || 0
-    ) > env.options.printWidth;
+    (node.loc?.start.column || 0) + classStr.length > env.options.printWidth;
   if (needsLineBreak) {
     result = createMultilineClassString(classes, { env, delimiter, quoteChar });
   } else {
@@ -74,7 +70,6 @@ const createMultilineClassString = (
   const currGroups: string[] = [sortedClasses[0][0]].filter(Boolean);
   const commentStr = (currGroups: string[]) =>
     lineSuffix(` // ${currGroups.filter(Boolean).join(", ")}`);
-
   for (let i = 1; i < sortedClasses.length; i++) {
     const groupClassNames = sortedClasses[i][1];
     if (
@@ -94,7 +89,7 @@ const createMultilineClassString = (
         fill(
           join(
             ifBreak(
-              [trim, `${quoteChar}${delimiter}`, hardline, `${quoteChar}`],
+              [trim, `${quoteChar}${delimiter}`, line, `${quoteChar}`],
               " "
             ),
             currClassNames.flatMap((str) => str)
@@ -115,7 +110,7 @@ const createMultilineClassString = (
     // Check if it's the last iteration to append the remaining classes and groups
   }
   if (currClassNames.length) {
-    result.push(`${quoteChar}`, join(" ", currClassNames), `${quoteChar}`);
+    result.push([`${quoteChar}`, join(" ", currClassNames), `${quoteChar}`]);
     currGroups.length && result.push(commentStr(currGroups));
   }
   return group(result);
@@ -135,9 +130,12 @@ export function sortClassList(
   classNamesWithOrder.forEach(([className]) => {
     try {
       let property;
+      let res;
+      let propRank;
       if (!env.context.parseCandidate) {
         property = env.context
           .generateRules([className], env.context, false)
+          // @ts-ignore
           .map((c) => c[1].nodes[0].prop)[0];
       } else {
         const candidate = env.context.parseCandidate(className);
@@ -146,11 +144,14 @@ export function sortClassList(
         // if (variant) {
         //   const func = env.context.utilities.get(variant.root);
         // }
+        // @ts-ignore
         const func = env.context.utilities.get(candidate?.root);
-        const compileRes = func?.compileFn?.(candidate);
-        property = compileRes?.[0].property ?? null;
+        res = func?.compileFn?.(candidate);
+        property = res?.[0].property ?? null;
+        propRank =
+          getPropertyRanks(property) ?? getPropertyRanks(res?.[0].value);
       }
-      if (!property) {
+      if (!property && !propRank) {
         const currGroup = groups.get(-1);
         groups.set(
           -1,
@@ -160,10 +161,12 @@ export function sortClassList(
           })
         );
       } else {
-        const props = getPropertyDetails(property);
-        if (props) {
-          const currGroup = groups.get(props.globalRank);
-          groups.set(props.globalRank, currGroup.concat({ props, className }));
+        if (propRank) {
+          const currGroup = groups.get(propRank.globalRank);
+          groups.set(
+            propRank.globalRank,
+            currGroup.concat({ props: propRank, className })
+          );
         } else if (res.kind === "rule") {
           const currGroup = groups.get(RULE_INDEX);
           groups.set(
@@ -172,19 +175,6 @@ export function sortClassList(
               props: {
                 globalRank: RULE_INDEX,
                 label: "rules",
-                subIndex: currGroup.length,
-              },
-              className,
-            })
-          );
-        } else {
-          const currGroup = groups.get(ETC_INDEX);
-          groups.set(
-            ETC_INDEX,
-            currGroup.concat({
-              props: {
-                globalRank: ETC_INDEX,
-                label: "unknowns",
                 subIndex: currGroup.length,
               },
               className,

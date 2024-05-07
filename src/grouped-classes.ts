@@ -1,3 +1,4 @@
+//Taken from: https://github.com/tailwindlabs/tailwindcss/blob/next/packages/tailwindcss/src/property-order.ts
 export const GROUPED_PROPS: Record<string, string[]> = {
   basicStyles: ["container-type", "pointer-events", "visibility", "position"],
 
@@ -27,7 +28,7 @@ export const GROUPED_PROPS: Record<string, string[]> = {
     "clear",
   ],
 
-  marginPadding: [
+  margin: [
     "margin",
     "margin-inline",
     "margin-block",
@@ -245,6 +246,7 @@ export const GROUPED_PROPS: Record<string, string[]> = {
     "padding-bottom",
     "padding-left",
   ],
+
   textStyles: [
     "text-align",
     "text-indent",
@@ -277,7 +279,7 @@ export const GROUPED_PROPS: Record<string, string[]> = {
 
   transparency: ["opacity", "background-blend-mode", "mix-blend-mode"],
 
-  shadowFilterEffects: [
+  outlineEffects: [
     "box-shadow",
     "--tw-shadow",
     "--tw-shadow-color",
@@ -294,6 +296,9 @@ export const GROUPED_PROPS: Record<string, string[]> = {
     "outline-width",
     "outline-offset",
     "outline-color",
+  ],
+
+  filters: [
     "--tw-blur",
     "--tw-brightness",
     "--tw-contrast",
@@ -328,8 +333,9 @@ export const GROUPED_PROPS: Record<string, string[]> = {
   ],
 };
 
-export const RULE_INDEX = Object.keys(GROUPED_PROPS).length + 1;
-export const ETC_INDEX = Object.keys(GROUPED_PROPS).length + 2;
+export const GROUP_KEYS = Object.keys(GROUPED_PROPS);
+export const RULE_INDEX = GROUP_KEYS.length + 1;
+export const ETC_INDEX = GROUP_KEYS.length + 2;
 
 export const FLAT_PROPS: string[] = [
   ...Object.values(GROUPED_PROPS).flatMap((prop) => prop),

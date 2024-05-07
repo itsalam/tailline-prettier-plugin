@@ -1,13 +1,17 @@
 import { TSESTree } from "@typescript-eslint/types";
-import { AstPath, ParserOptions, Plugin, Printer } from "prettier";
+import { AstPath, ParserOptions, Plugin, Printer, doc } from "prettier";
 import { getTailwindConfig } from "./config.js";
 import { sortClasses } from "./sorting.js";
 import { Node, TransformerEnv } from "./types.js";
 import {
-  isClassNameAttributeChild,
+  binaryExpToLiteralExp,
   isClassNameAttributeLiteral,
-  isClassUtilityParameter,
+  isClassNameDirectChild,
+  isClassNameFunction,
+  isClassNameFunctionNode,
 } from "./utils.js";
+
+const { line, join, group, indent, softline } = doc.builders;
 
 export class CustomPrinter implements Printer<Node> {
   printerFormat: string;
@@ -99,29 +103,96 @@ export class CustomPrinter implements Printer<Node> {
 
   print(path: AstPath, options: ParserOptions, _print) {
     const ast = path.getNode();
-    if (isClassNameAttributeLiteral(path)) {
+    const delimiter =
+      isClassNameFunctionNode(ast) ||
+      (path.parent && isClassNameFunction(path.parent))
+        ? ","
+        : " +";
+    if (isClassNameAttributeLiteral(ast)) {
       return [
         ast.name.name,
         `=`,
         sortClasses(ast.value, {
           env: { context: this._context, options },
+          delimiter,
         }),
       ];
-    } else if (ast.type === "Literal" && isClassNameAttributeChild(path)) {
-      const delimiter = isClassUtilityParameter(path) ? "," : " +";
+    } else if (isClassNameFunction(path, ast)) {
+      const stringArgs = ast.arguments.filter((arg) => arg.type === "Literal");
+
+      let binaryArgs = [];
+
+      try {
+        // try to concat all to a pure string literal exp
+        binaryArgs = ast.arguments
+          .filter((arg) => arg.type === "BinaryExpression")
+          .map((arg: TSESTree.BinaryExpression) => binaryExpToLiteralExp(arg));
+      } catch (e) {}
+      const value = stringArgs
+        .concat(binaryArgs)
+        .map((arg: TSESTree.Literal) => arg.value)
+        .join(" ");
+
+      return group([
+        (ast.callee as TSESTree.Identifier).name,
+        "(",
+        indent([
+          softline,
+          join(
+            [",", line],
+            [
+              sortClasses(
+                {
+                  ...ast,
+                  type: "Literal",
+                  value,
+                  raw: `"${value}"`,
+                } as TSESTree.Literal,
+                {
+                  env: { context: this._context, options },
+                  delimiter,
+                }
+              ),
+              path
+                .map(
+                  (
+                    argPath: AstPath<TSESTree.CallExpressionArgument>,
+                    index
+                  ) => {
+                    const argAst = argPath.getNode();
+                    if (
+                      !(
+                        argAst.type === "Literal" ||
+                        argAst.type === "BinaryExpression"
+                      )
+                    ) {
+                      return this.getDefaultPrinter(options).print(
+                        argPath,
+                        options,
+                        _print
+                      );
+                    }
+                  },
+                  "arguments"
+                )
+                .filter(Boolean),
+            ]
+          ),
+        ]),
+        softline,
+        ")",
+      ]);
+    } else if (ast.type === "Literal" && isClassNameDirectChild(path)) {
       return [
         sortClasses(ast, {
           env: { context: this._context, options },
           delimiter,
         }),
       ];
-    } else if (
-      ast.type === "TemplateLiteral" &&
-      isClassNameAttributeChild(path)
-    ) {
+    } else if (ast.type === "TemplateLiteral" && isClassNameDirectChild(path)) {
       return sortClasses(
         ast.quasis?.[0],
-        { env: { context: this._context, options }, quoteChar: "`" },
+        { env: { context: this._context, options }, quoteChar: "`", delimiter },
         (node: TSESTree.TemplateElement) => node.value.raw
       );
     }

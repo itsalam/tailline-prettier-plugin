@@ -1,6 +1,8 @@
-import { JSXAttribute, JSXExpressionContainer } from "@babel/types";
+import { TSESTree } from "@typescript-eslint/types";
 import { CLASS_NAME_ATTRS } from "./config.js";
+import { GROUP_KEYS } from "./grouped-classes.js";
 import { Node, StringLiteral, TransformerContext } from "./types.js";
+import { isClassNameFunctionNode, isRangeWithin } from "./utils.js";
 
 export function visit(
   ast: Node,
@@ -41,8 +43,39 @@ export function visit(
 }
 
 export function transformJavaScript(ast: Node, { env }: TransformerContext) {
+  let programNode;
+  let callExpressions: TSESTree.CallExpression[] = [];
   visit(ast, {
-    JSXAttribute(node: JSXAttribute) {
+    // CallExpression(node: TSESTree.CallExpression, parent, key, index, meta) {
+    //   console.log({ node, parent, key, index, meta });
+    //   console.log(node.arguments);
+    //   if (isClassNameFunctionNode(node)) {
+    //     const stringArgs = node.arguments.filter(
+    //       (arg) => arg.type === "Literal"
+    //     );
+    //     const nonStringArgs = node.arguments.filter(
+    //       (arg) => arg.type !== "Literal"
+    //     );
+    //     const value = stringArgs
+    //       .map((arg: TSESTree.Literal) => arg.value)
+    //       .join(" ");
+    //     node.arguments = [
+    //       { type: "Literal", value, raw: `"${value}"` },
+    //       ...nonStringArgs,
+    //     ] as TSESTree.Literal[];
+    //   }
+    // },
+    Program(node: TSESTree.Program) {
+      programNode = node;
+      return node;
+    },
+    CallExpression(node: TSESTree.CallExpression) {
+      if (isClassNameFunctionNode(node)) {
+        callExpressions.push(node);
+      }
+      return node;
+    },
+    JSXAttribute(node: TSESTree.JSXAttribute) {
       if (
         !(
           typeof node.name.name === "string" &&
@@ -64,9 +97,24 @@ export function transformJavaScript(ast: Node, { env }: TransformerContext) {
         } as StringLiteral,
         loc: literalValue.loc, // Optionally adjust if needed
         range: literalValue.range, // Optionally adjust if needed
-      } as JSXExpressionContainer;
+      } as TSESTree.JSXExpressionContainer;
       node.value = jsxExpressionContainer;
       return jsxExpressionContainer;
     },
   });
+
+  const comments = programNode.comments.filter(
+    ({ value, range }) =>
+      !(
+        value
+          .trim()
+          .split(/,\s*/)
+          .every((group) => GROUP_KEYS.includes(group.trim())) &&
+        callExpressions.find(({ range: ceRange }) =>
+          isRangeWithin(ceRange, range)
+        )
+      )
+  );
+  programNode.comments = comments;
+  return programNode;
 }
