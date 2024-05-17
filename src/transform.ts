@@ -1,6 +1,5 @@
 import { TSESTree } from "@typescript-eslint/types";
 import { CLASS_NAME_ATTRS } from "./config.js";
-import { GROUP_KEYS } from "./grouped-classes.js";
 import { Node, StringLiteral, TransformerContext } from "./types.js";
 import { isClassNameFunctionNode, isRangeWithin } from "./utils.js";
 
@@ -46,25 +45,6 @@ export function transformJavaScript(ast: Node, { env }: TransformerContext) {
   let programNode;
   let callExpressions: TSESTree.CallExpression[] = [];
   visit(ast, {
-    // CallExpression(node: TSESTree.CallExpression, parent, key, index, meta) {
-    //   console.log({ node, parent, key, index, meta });
-    //   console.log(node.arguments);
-    //   if (isClassNameFunctionNode(node)) {
-    //     const stringArgs = node.arguments.filter(
-    //       (arg) => arg.type === "Literal"
-    //     );
-    //     const nonStringArgs = node.arguments.filter(
-    //       (arg) => arg.type !== "Literal"
-    //     );
-    //     const value = stringArgs
-    //       .map((arg: TSESTree.Literal) => arg.value)
-    //       .join(" ");
-    //     node.arguments = [
-    //       { type: "Literal", value, raw: `"${value}"` },
-    //       ...nonStringArgs,
-    //     ] as TSESTree.Literal[];
-    //   }
-    // },
     Program(node: TSESTree.Program) {
       programNode = node;
       return node;
@@ -103,13 +83,11 @@ export function transformJavaScript(ast: Node, { env }: TransformerContext) {
     },
   });
 
+  // Grab every comment that is in the classname ranges, and consists of comma seperated values.
   const comments = programNode.comments.filter(
     ({ value, range }) =>
       !(
-        value
-          .trim()
-          .split(/,\s*/)
-          .every((group) => GROUP_KEYS.includes(group.trim())) &&
+        /^[\w\s]+(?:,\s[\w\s]+)*$/.test(value.trim()) &&
         callExpressions.find(({ range: ceRange }) =>
           isRangeWithin(ceRange, range)
         )

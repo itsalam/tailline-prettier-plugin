@@ -137,6 +137,7 @@ export function sortClassList(
           .generateRules([className], env.context, false)
           // @ts-ignore
           .map((c) => c[1].nodes[0].prop)[0];
+        propRank = getPropertyRanks(property);
       } else {
         const candidate = env.context.parseCandidate(className);
         const variant = env.context.parseVariant(className);
@@ -151,7 +152,7 @@ export function sortClassList(
         propRank =
           getPropertyRanks(property) ?? getPropertyRanks(res?.[0].value);
       }
-      if (!property && !propRank) {
+      if (!property || !propRank) {
         const currGroup = groups.get(-1);
         groups.set(
           -1,
@@ -167,7 +168,7 @@ export function sortClassList(
             propRank.globalRank,
             currGroup.concat({ props: propRank, className })
           );
-        } else if (res.kind === "rule") {
+        } else if (res?.kind === "rule") {
           const currGroup = groups.get(RULE_INDEX);
           groups.set(
             RULE_INDEX,

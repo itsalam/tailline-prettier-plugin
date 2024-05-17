@@ -24,8 +24,15 @@ export const isStringLiteral = (node: Node) =>
   (node?.type === "Literal" && typeof node?.value === "string");
 
 export function isClassNameDirectChild(path: AstPath) {
-  return CLASS_NAME_ATTRS.includes(
-    path.stack.find((p) => p.type?.includes("JSXAttribute"))?.name?.name
+  const jsxIndex = path.stack.findIndex((p) =>
+    p.type?.includes("JSXAttribute")
+  );
+  const objectIndex = path.stack.findIndex((p) =>
+    p.type?.includes("ObjectExpression")
+  );
+  return (
+    (!objectIndex || objectIndex < jsxIndex) &&
+    CLASS_NAME_ATTRS.includes(path.stack[jsxIndex]?.name?.name)
   );
 }
 

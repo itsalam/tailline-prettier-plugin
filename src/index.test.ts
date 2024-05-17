@@ -298,7 +298,6 @@ describe("Changes on..", () => {
         }
       );
 
-      console.log(formattedWithPlugin, formatted);
       const rawResults = parse(formatted, tsParserOptions);
 
       const rawRes = collectStringLiterals(rawResults);
@@ -314,6 +313,7 @@ describe("Changes on..", () => {
       expect(rawLiterals).not.toEqual(pluginLiterals);
     });
   });
+
   describe("stringLiteral updated with plugin", () => {
     const codeWithClassNameInsert = (
       classNames
@@ -385,6 +385,75 @@ describe("Changes on..", () => {
       expect(rawLiterals).not.toEqual(pluginLiterals);
       expect(new Set(rawLiterals)).toEqual(new Set(pluginLiterals));
       expect(rawLiterals).not.toEqual(pluginLiterals);
+    });
+  });
+
+  describe("classNames with object argument", () => {
+    const codeWithClassNameInsert = (
+      classNames = []
+    ) => `export function ThreeDCardDemo() {
+      return (
+        <input
+          type={type}
+          className={cn(${[
+            `{
+            "opacity-25": j !== 0,
+            "opacity-100": j === 0,
+          }`,
+            `classNames`,
+            ...classNames,
+          ]
+            .filter(Boolean)
+            .join(", ")})}
+          ref={ref}
+          {...props}
+        />
+      );
+    }`;
+
+    test("plugin has no updates with no string literals", async () => {
+      const formatted = await prettier.format(codeWithClassNameInsert(), {
+        parser: "typescript",
+      });
+      const formattedWithPlugin = await prettier.format(
+        codeWithClassNameInsert(),
+        {
+          parser: "typescript",
+          plugins: [TypescriptPlugin],
+        }
+      );
+      expect(formatted.replace(/\s/g, "").length).toBe(
+        formattedWithPlugin.replace(/\s/g, "").length + 1
+      );
+    });
+
+    test("plugin has updates with string literals", async () => {
+      const formatted = await prettier.format(
+        codeWithClassNameInsert([`"z-50 w-64 rounded-md border"`]),
+        {
+          parser: "typescript",
+        }
+      );
+      const formattedWithPlugin = await prettier.format(
+        codeWithClassNameInsert([`"z-50 w-64 rounded-md border"`]),
+        {
+          parser: "typescript",
+          plugins: [TypescriptPlugin],
+        }
+      );
+
+      const rawResults = parse(formatted, tsParserOptions);
+      const rawRes = collectStringLiterals(rawResults);
+      const rawLiterals = rawRes.flatMap((literal) => literal.split(" "));
+      const pluginResults = parse(formattedWithPlugin, tsParserOptions);
+      const pluginClassGroups = collectStringLiterals(pluginResults);
+      const pluginLiterals = pluginClassGroups.flatMap((literal) =>
+        literal.split(" ")
+      );
+
+      expect(rawLiterals).not.toEqual(pluginLiterals);
+      expect(new Set(rawLiterals)).toEqual(new Set(pluginLiterals));
+      expect(formatted).not.toEqual(formattedWithPlugin);
     });
   });
 });

@@ -153,42 +153,34 @@ export class CustomPrinter implements Printer<Node> {
                   delimiter,
                 }
               ),
-              path
-                .map(
-                  (
-                    argPath: AstPath<TSESTree.CallExpressionArgument>,
-                    index
-                  ) => {
-                    const argAst = argPath.getNode();
-                    if (
-                      !(
-                        argAst.type === "Literal" ||
-                        argAst.type === "BinaryExpression"
-                      )
-                    ) {
-                      return this.getDefaultPrinter(options).print(
-                        argPath,
-                        options,
-                        _print
-                      );
-                    }
-                  },
-                  "arguments"
-                )
+              ...path
+                .map((argPath: AstPath<TSESTree.CallExpressionArgument>) => {
+                  const argAst = argPath.getNode();
+                  if (
+                    !(
+                      argAst.type === "Literal" ||
+                      argAst.type === "BinaryExpression"
+                    )
+                  ) {
+                    return this.getDefaultPrinter(options).print(
+                      argPath,
+                      options,
+                      _print
+                    );
+                  }
+                }, "arguments")
                 .filter(Boolean),
-            ]
+            ].filter(Boolean)
           ),
         ]),
         softline,
         ")",
       ]);
     } else if (ast.type === "Literal" && isClassNameDirectChild(path)) {
-      return [
-        sortClasses(ast, {
-          env: { context: this._context, options },
-          delimiter,
-        }),
-      ];
+      return sortClasses(ast, {
+        env: { context: this._context, options },
+        delimiter,
+      });
     } else if (ast.type === "TemplateLiteral" && isClassNameDirectChild(path)) {
       return sortClasses(
         ast.quasis?.[0],

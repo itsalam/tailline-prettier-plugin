@@ -1,6 +1,6 @@
 {
   "name": "prettier-plugin-tailline",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "A pretter plugin for TailwindCSS4.0 to sort classNames into groups and newlines",
   "source": "src/index.ts",
   "main": "dist/index.js",
@@ -27,7 +27,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@typescript-eslint/parser": "^7.8.0",
+    "@typescript-eslint/parser": "^7.9.0",
     "@typescript-eslint/types": "^7.8.0",
     "clear-module": "^4.1.2",
     "escalade": "^3.1.2",
