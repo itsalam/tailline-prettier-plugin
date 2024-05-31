@@ -5,10 +5,8 @@ import { sortClasses } from "./sorting.js";
 import { Node, TransformerEnv } from "./types.js";
 import {
   binaryExpToLiteralExp,
-  isClassNameAttributeLiteral,
-  isClassNameDirectChild,
   isClassNameFunction,
-  isClassNameFunctionNode,
+  isClassNameFunctionNode
 } from "./utils.js";
 
 const { line, join, group, indent, softline } = doc.builders;
@@ -108,16 +106,7 @@ export class CustomPrinter implements Printer<Node> {
       (path.parent && isClassNameFunction(path.parent))
         ? ","
         : " +";
-    if (isClassNameAttributeLiteral(ast)) {
-      return [
-        ast.name.name,
-        `=`,
-        sortClasses(ast.value, {
-          env: { context: this._context, options },
-          delimiter,
-        }),
-      ];
-    } else if (isClassNameFunction(path, ast)) {
+    if (isClassNameFunction(path, ast)) {
       const stringArgs = ast.arguments.filter((arg) => arg.type === "Literal");
 
       let binaryArgs = [];
@@ -176,17 +165,17 @@ export class CustomPrinter implements Printer<Node> {
         softline,
         ")",
       ]);
-    } else if (ast.type === "Literal" && isClassNameDirectChild(path)) {
-      return sortClasses(ast, {
-        env: { context: this._context, options },
-        delimiter,
-      });
-    } else if (ast.type === "TemplateLiteral" && isClassNameDirectChild(path)) {
-      return sortClasses(
-        ast.quasis?.[0],
-        { env: { context: this._context, options }, quoteChar: "`", delimiter },
-        (node: TSESTree.TemplateElement) => node.value.raw
-      );
+    // } else if (ast.type === "Literal" && isClassNameDirectChild(path)) {
+    //   return sortClasses(ast, {
+    //     env: { context: this._context, options },
+    //     delimiter,
+    //   });
+    // } else if (ast.type === "TemplateLiteral" && isClassNameDirectChild(path)) {
+    //   return sortClasses(
+    //     ast.quasis?.[0],
+    //     { env: { context: this._context, options }, quoteChar: "`", delimiter },
+    //     (node: TSESTree.TemplateElement) => node.value.raw
+    //   );
     }
     return this.getDefaultPrinter(options).print(path, options, _print);
   }

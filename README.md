@@ -95,8 +95,7 @@ After installation, you need to add the plugin to your Prettier configuration.
 ### TODOS
 
 [] - Create a config to work off of the tailwind config.
-[] - Read variant classes from the tailwind config.
-[] - Read utility classes from the tailwind config.
+[] - Create a preference option for variants over sortings
 [] - Read class order from the tailwind config. ()
 [] - Read class groups from the tailwind config.
 [] - Create group name mapping config.

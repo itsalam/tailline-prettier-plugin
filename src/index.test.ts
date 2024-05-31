@@ -77,19 +77,11 @@ describe("Changes on..", () => {
     });
 
     parse(formattedWithPlugin, tsParserOptions);
-    expect(formattedWithPlugin).not.toBe(formatted);
-    const classNameRes = classNameRegex.exec(formatted);
-    const sortedClassNameRes = classNameRegex.exec(formattedWithPlugin);
-    const className = classNameRes?.[1];
-    const sortedClassName = sortedClassNameRes?.[1];
-    expect(className.split(" ")).toEqual(
-      expect.arrayContaining(sortedClassName.split(" "))
-    );
-    expect(className.split(" ")).not.toEqual(sortedClassName.split(" "));
+    expect(formattedWithPlugin).toBe(formatted);
   });
 
-  describe("className attribute sorted but OOBs", () => {
-    const code = `<div className="rounded-xl bg-black dark:bg-white py-2 px-4 text-xs font-bold dark:text-black text-white"/>`;
+  describe("className expression sorted but OOBs", () => {
+    const code = `<div className={cn("rounded-xl bg-black dark:bg-white py-2 px-4 text-xs font-bold dark:text-black text-white")}/>`;
     let formatted;
     let formattedWithPlugin;
     beforeAll(async () => {
@@ -125,15 +117,7 @@ describe("Changes on..", () => {
       expect(pluginClassGroups.length).toBeGreaterThan(1);
     });
 
-    test("plugin classNames should convert from literal to expression", async () => {
-      const rawResults = parse(formatted, tsParserOptions);
-      const pluginResults = parse(formattedWithPlugin, tsParserOptions);
-      const pluginClassNamesNode = findJSXAttribute(pluginResults, "className");
-      const rawClassNamesNode = findJSXAttribute(rawResults, "className");
-      expect(pluginClassNamesNode.value.type).not.toEqual(
-        rawClassNamesNode.value.type
-      );
-    });
+
   });
 
   test("className attribute unsorted and OOBs", async () => {
@@ -146,19 +130,7 @@ describe("Changes on..", () => {
       plugins: [TypescriptPlugin],
     });
 
-    const rawResults = parse(formatted, tsParserOptions);
-    const rawLiterals = collectStringLiterals(rawResults).flatMap((literal) =>
-      literal.split(" ")
-    );
-    const pluginResults = parse(formattedWithPlugin, tsParserOptions);
-    const pluginClassGroups = collectStringLiterals(pluginResults);
-    const pluginLiterals = pluginClassGroups.flatMap((literal) =>
-      literal.split(" ")
-    );
-    expect(formattedWithPlugin).not.toBe(formatted);
-    expect(rawLiterals).not.toEqual(pluginLiterals);
-    expect(new Set(rawLiterals)).toEqual(new Set(pluginLiterals));
-    expect(pluginClassGroups.length).toBeGreaterThan(1);
+    expect(formattedWithPlugin).toBe(formatted);
   });
 
   test("multiline className attribute with className utility function", async () => {
@@ -200,7 +172,7 @@ describe("Changes on..", () => {
     ref={ref}
     align={align}
     sideOffset={sideOffset}
-    className={"z-50 w-64 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"}
+    className={cn("z-50 w-64 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2")}
     {...props}
   />`;
     const formatted = await prettier.format(code, {
@@ -221,8 +193,7 @@ describe("Changes on..", () => {
       literal.split(" ")
     );
 
-    expect(formatted).not.toContain("+");
-    expect(formattedWithPlugin).toContain("+");
+    expect(formattedWithPlugin).toContain(",");
     expect(formattedWithPlugin).not.toBe(formatted);
     expect(rawLiterals).not.toEqual(pluginLiterals);
     expect(new Set(rawLiterals)).toEqual(new Set(pluginLiterals));
@@ -321,12 +292,12 @@ describe("Changes on..", () => {
       return (
         <input
           type={type}
-          className={
-            "h-10 w-full disabled:cursor-not-allowed" + // sizing, interactions
-            "rounded-md bg-gray-50 dark:bg-zinc-800 file:bg-transparent" + // border, background
-            "py-2 px-3" + // padding
+          className={cn(
+            "h-10 w-full disabled:cursor-not-allowed", // sizing, interactions
+            "rounded-md bg-gray-50 dark:bg-zinc-800 file:bg-transparent", // border, background
+            "py-2 px-3", // padding
             "transition duration-400${classNames}" // transitionsAnimations
-          }
+          )}
           ref={ref}
           {...props}
         />
