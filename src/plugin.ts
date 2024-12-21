@@ -4,7 +4,7 @@ import { parsers as tsParsers } from "prettier/plugins/typescript";
 import { getTailwindConfig } from "./config.js";
 import { CustomPrinter } from "./printer.js";
 import { transformJavaScript } from "./transform.js";
-import { Node } from "./types.js";
+import { DesignSystem, Node } from "./types.js";
 
 const defaultParsers = {
   ...tsParsers,
@@ -15,6 +15,7 @@ const defaultParsers = {
 export class TypescriptPlugin {
   parser: Parser<Node>;
   printer: CustomPrinter;
+  config?: DesignSystem;
 
   constructor(parserFormat: string, printerFormat: string) {
     this.createParser = this.createParser.bind(this);
@@ -34,11 +35,14 @@ export class TypescriptPlugin {
       async parse(text: string, options: ParserOptions) {
         await plugin.printer.initializeDefaultPrinter(options);
         let ast = await original.parse(text, options);
-        const context = await getTailwindConfig(options);
+        if (!this.config) {
+          this.config = await getTailwindConfig(options);
+        }
+
         let changes = [];
         return (
           transformJavaScript(ast, {
-            env: { context, options },
+            env: { context: this.config, options },
             changes,
           }) ?? ast
         );

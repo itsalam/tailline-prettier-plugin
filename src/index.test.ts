@@ -1,6 +1,6 @@
 import { ParserOptions, parse } from "@typescript-eslint/parser";
 import prettier from "prettier";
-import TypescriptPlugin from "./index.js";
+import TypescriptPlugin from "./index";
 
 function collectStringLiterals(node, literals = []) {
   if (node.type === "Literal" && typeof node.value === "string") {
@@ -116,11 +116,9 @@ describe("Changes on..", () => {
       const pluginClassGroups = collectStringLiterals(pluginResults);
       expect(pluginClassGroups.length).toBeGreaterThan(1);
     });
-
-
   });
 
-  test("className attribute unsorted and OOBs", async () => {
+  test("className attribute unsorted and OOBs is not affected", async () => {
     const code = `<div className="rounded-xl bg-black dark:bg-white py-2 mx-4 text-xs font-bold dark:text-black text-white"/>`;
     const formatted = await prettier.format(code, {
       parser: "typescript",

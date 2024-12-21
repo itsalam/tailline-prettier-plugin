@@ -8,7 +8,7 @@ import postcssImport from "postcss-import";
 import prettier from "prettier";
 import { __unstable__loadDesignSystem } from "tailwindcss";
 import { pathToFileURL } from "url";
-import { DesignSystem } from "./types.js";
+import { DesignSystem } from "./types";
 
 export const CLASS_NAME_ATTRS = ["className", "class"];
 export const CALL_EXPRESSIONS = ["cn", "clsx", "twMerge"];
@@ -17,7 +17,7 @@ let localRequire = createRequire(import.meta.url);
 
 let sourceToPathMap = new Map();
 let sourceToEntryMap = new Map();
-let pathToContextMap = new Map();
+const pathToContextMap = new Map();
 const cache = new Map();
 
 async function getPrettierConfigPath(options) {
@@ -43,7 +43,6 @@ async function getBaseDir(options) {
 
 export async function getTailwindConfig(options) {
   let key = `${options.filepath}`;
-  let prettierConfigPath = await getPrettierConfigPath(options);
   let baseDir = await getBaseDir(options);
 
   let twPkgPath = sourceToPathMap.get(key);

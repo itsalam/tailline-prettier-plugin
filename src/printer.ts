@@ -3,11 +3,7 @@ import { AstPath, ParserOptions, Plugin, Printer, doc } from "prettier";
 import { getTailwindConfig } from "./config.js";
 import { sortClasses } from "./sorting.js";
 import { Node, TransformerEnv } from "./types.js";
-import {
-  binaryExpToLiteralExp,
-  isClassNameFunction,
-  isClassNameFunctionNode
-} from "./utils.js";
+import { binaryExpToLiteralExp, isClassNameFunction } from "./utils.js";
 
 const { line, join, group, indent, softline } = doc.builders;
 
@@ -101,11 +97,7 @@ export class CustomPrinter implements Printer<Node> {
 
   print(path: AstPath, options: ParserOptions, _print) {
     const ast = path.getNode();
-    const delimiter =
-      isClassNameFunctionNode(ast) ||
-      (path.parent && isClassNameFunction(path.parent))
-        ? ","
-        : " +";
+    const delimiter = ",";
     if (isClassNameFunction(path, ast)) {
       const stringArgs = ast.arguments.filter((arg) => arg.type === "Literal");
 
@@ -165,17 +157,6 @@ export class CustomPrinter implements Printer<Node> {
         softline,
         ")",
       ]);
-    // } else if (ast.type === "Literal" && isClassNameDirectChild(path)) {
-    //   return sortClasses(ast, {
-    //     env: { context: this._context, options },
-    //     delimiter,
-    //   });
-    // } else if (ast.type === "TemplateLiteral" && isClassNameDirectChild(path)) {
-    //   return sortClasses(
-    //     ast.quasis?.[0],
-    //     { env: { context: this._context, options }, quoteChar: "`", delimiter },
-    //     (node: TSESTree.TemplateElement) => node.value.raw
-    //   );
     }
     return this.getDefaultPrinter(options).print(path, options, _print);
   }

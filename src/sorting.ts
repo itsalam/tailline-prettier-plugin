@@ -7,7 +7,7 @@ import {
 import { Node, StringLiteral, TransformerEnv } from "./types.js";
 import { DefaultMap } from "./utils.js";
 
-const { line, join, group, indent, lineSuffix, fill, ifBreak, trim } =
+const { line, hardline, join, group, indent, lineSuffix, fill, ifBreak, trim } =
   doc.builders;
 
 type SortOptions = {
@@ -18,7 +18,7 @@ type SortOptions = {
 
 export function sortClasses(
   node: Node,
-  { env, delimiter = " + ", quoteChar }: SortOptions,
+  { env, delimiter = ", ", quoteChar }: SortOptions,
   mapFunc?: (node: Node) => string
 ) {
   const classStr = mapFunc ? mapFunc(node) : (node as StringLiteral).value;
@@ -62,7 +62,7 @@ export function sortClasses(
 
 const createMultilineClassString = (
   classes: string[],
-  { env, delimiter = " + ", quoteChar }: SortOptions
+  { env, delimiter = ", ", quoteChar }: SortOptions
 ): Doc => {
   const sortedClasses = [...Object.entries(sortClassList(classes, { env }))];
   let result: Doc[] = [];
@@ -99,7 +99,7 @@ const createMultilineClassString = (
         quoteChar
       );
       result.push(delimiter);
-      result.push(line);
+      result.push(hardline);
       currGroups.splice(0, currGroups.length);
       currClassNames.splice(0, currClassNames.length);
     }
@@ -140,7 +140,7 @@ export function sortClassList(
         propRank = getPropertyRanks(property);
       } else {
         const candidate = env.context.parseCandidate(className);
-        const variant = env.context.parseVariant(className);
+        // const variant = env.context.parseVariant(className);
         // Figure out variants, wait for tailwind v4 documentation?
         // if (variant) {
         //   const func = env.context.utilities.get(variant.root);
