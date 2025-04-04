@@ -2,7 +2,7 @@ import { TSESTree } from "@typescript-eslint/types";
 import { AstPath, ParserOptions, Plugin, Printer, doc } from "prettier";
 import { getTailwindConfig } from "./config.js";
 import { sortClasses } from "./sorting.js";
-import { Node, TransformerEnv } from "./types.js";
+import { Node, TemplateLiteral, TransformerEnv } from "./types.js";
 import { binaryExpToLiteralExp, isClassNameFunction } from "./utils.js";
 
 const { line, join, group, indent, softline } = doc.builders;
@@ -100,20 +100,24 @@ export class CustomPrinter implements Printer<Node> {
     const delimiter = ",";
     if (isClassNameFunction(path, ast)) {
       const stringArgs = ast.arguments.filter((arg) => arg.type === "Literal");
-
+      console.log(stringArgs)
       let binaryArgs = [];
-
+      const templateArgs = ast.arguments.filter((arg) => arg.type === "TemplateLiteral" && arg.expressions.length === 0);
+      
       try {
         // try to concat all to a pure string literal exp
         binaryArgs = ast.arguments
           .filter((arg) => arg.type === "BinaryExpression")
           .map((arg: TSESTree.BinaryExpression) => binaryExpToLiteralExp(arg));
+        
+          
       } catch (e) {}
-      const value = stringArgs
+      const literalValues = stringArgs
         .concat(binaryArgs)
         .map((arg: TSESTree.Literal) => arg.value)
         .join(" ");
-
+      const templateValues = templateArgs.map((temp) => (temp as TemplateLiteral).quasis.map((q) => q.value.raw).join(" ")).join(" ");
+      console.log({value: literalValues})
       return group([
         (ast.callee as TSESTree.Identifier).name,
         "(",
@@ -126,14 +130,28 @@ export class CustomPrinter implements Printer<Node> {
                 {
                   ...ast,
                   type: "Literal",
-                  value,
-                  raw: `"${value}"`,
+                  value: literalValues,
+                  raw: `"${literalValues}"`,
                 } as TSESTree.Literal,
                 {
                   env: { context: this._context, options },
                   delimiter,
                 }
               ),
+              
+                sortClasses(
+                  {
+                    ...ast,
+                    type: "Literal",
+                    value: templateValues,
+                    raw: `\`${templateValues}\``,
+                  } as TSESTree.Literal,
+                  {
+                    env: { context: this._context, options },
+                    delimiter,
+                    quoteChar: "`",
+                  }
+                ),
               ...path
                 .map((argPath: AstPath<TSESTree.CallExpressionArgument>) => {
                   const argAst = argPath.getNode();

@@ -4,6 +4,7 @@ import { ParserOptions, Printer } from "prettier";
 import { __unstable__loadDesignSystem } from "tailwindcss";
 
 export type StringLiteral = TSESTree.StringLiteral | BabelStringLiteral;
+export type TemplateLiteral = TSESTree.TemplateLiteral;
 export type Node = TSESTree.Node;
 
 export interface TransformerMetadata {
