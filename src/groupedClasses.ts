@@ -1,8 +1,24 @@
 //Taken from: https://github.com/tailwindlabs/tailwindcss/blob/next/packages/tailwindcss/src/property-order.ts
-export const GROUPED_PROPS: Record<string, string[]> = {
-  basicStyles: ["container-type", "pointer-events", "visibility", "position"],
 
-  positioning: [
+export const GROUPED_PROPS2: Record<string, string[]> = {
+  Layout: [
+    "container-type",
+    "aspect-ratio",
+    "columns",
+    "break-after",
+    "break-before",
+    "break-inside",
+    "box-decoration-break",
+    "box-sizing",
+    "display",
+    "float",
+    "clear",
+    "isolation",
+    "object-fit",
+    "object-position",
+    "overflow",
+    "overscroll-behavior",
+    "position",
     "inset",
     "inset-inline",
     "inset-block",
@@ -12,9 +28,194 @@ export const GROUPED_PROPS: Record<string, string[]> = {
     "right",
     "bottom",
     "left",
+    "visibility",
+    "z-index"
   ],
+  "Flexbox & Grid": [
+    "flex-basis",
+    "flex-direction",
+    "flex-wrap",
+    "flex",
+    "flex-grow",
+    "flex-shrink",
+    "order",
+    "grid-template-columns",
+    "grid-column",
+    "grid-template-rows",
+    "grid-row",
+    "grid-auto-flow",
+    "grid-auto-columns",
+    "grid-auto-rows",
+    "gap",
+    "justify-content",
+    "justify-items",
+    "justify-self",
+    "align-content",
+    "align-items",
+    "align-self",
+    "place-content",
+    "place-items",
+    "place-self"
+  ],
+  Spacing: ["padding", "margin"],
+  Sizing: [
+    "width",
+    "min-width",
+    "max-width",
+    "height",
+    "min-height",
+    "max-height"
+  ],
+  Typography: [
+    "font-family",
+    "font-size",
+    "font-smoothing",
+    "font-style",
+    "font-weight",
+    "font-stretch",
+    "font-variant-numeric",
+    "letter-spacing",
+    "line-clamp",
+    "line-height",
+    "list-style-image",
+    "list-style-position",
+    "list-style-type",
+    "text-align",
+    "color",
+    "text-decoration-line",
+    "text-decoration-color",
+    "text-decoration-style",
+    "text-decoration-thickness",
+    "text-underline-offset",
+    "text-transform",
+    "text-overflow",
+    "text-wrap",
+    "text-indent",
+    "vertical-align",
+    "white-space",
+    "word-break",
+    "overflow-wrap",
+    "hyphens",
+    "content"
+  ],
+  Backgrounds: [
+    "background-attachment",
+    "background-clip",
+    "background-color",
+    "background-image",
+    "background-origin",
+    "background-position",
+    "background-repeat",
+    "background-size"
+  ],
+  Borders: [
+    "border-radius",
+    "border-width",
+    "border-color",
+    "border-style",
+    "outline-width",
+    "outline-color",
+    "outline-style",
+    "outline-offset"
+  ],
+  Effects: [
+    "box-shadow",
+    "text-shadow",
+    "opacity",
+    "mix-blend-mode",
+    "background-blend-mode",
+    "mask-clip",
+    "mask-composite",
+    "mask-image",
+    "mask-mode",
+    "mask-origin",
+    "mask-position",
+    "mask-repeat",
+    "mask-size",
+    "mask-type"
+  ],
+  Filters: [
+    "filter",
+    "blur",
+    "brightness",
+    "contrast",
+    "drop-shadow",
+    "grayscale",
+    "hue-rotate",
+    "invert",
+    "saturate",
+    "sepia",
+    "backdrop-filter",
+    "opacity",
+    "--tw-backdrop-blur",
+    "--tw-backdrop-brightness",
+    "--tw-backdrop-contrast",
+    "--tw-backdrop-grayscale",
+    "--tw-backdrop-hue-rotate"
+  ],
+  Tables: [
+    "border-collapse",
+    "border-spacing",
+    "table-layout",
+    "caption-side"
+  ],
+  "Transitions & Animation": [
+    "transition-property",
+    "transition-behavior",
+    "transition-duration",
+    "transition-timing-function",
+    "transition-delay",
+    "animation"
+  ],
+  Transforms: [
+    "backface-visibility",
+    "perspective",
+    "perspective-origin",
+    "rotate",
+    "scale",
+    "skew",
+    "transform",
+    "transform-origin",
+    "transform-style",
+    "translate"
+  ],
+  Interactivity: [
+    "accent-color",
+    "appearance",
+    "caret-color",
+    "color-scheme",
+    "cursor",
+    "field-sizing",
+    "pointer-events",
+    "resize",
+    "scroll-behavior",
+    "scroll-margin",
+    "scroll-padding",
+    "scroll-snap-align",
+    "scroll-snap-stop",
+    "scroll-snap-type",
+    "touch-action",
+    "user-select",
+    "will-change"
+  ],
+  SVG: ["fill", "stroke", "stroke-width"],
+  Accessibility: ["forced-color-adjust"]
+};
 
-  layoutControl: [
+
+
+export const GROUPED_PROPS: Record<string, string[]> = {
+  Layout: [
+ "container-type",  "visibility", "position",
+    "inset",
+    "inset-inline",
+    "inset-block",
+    "inset-inline-start",
+    "inset-inline-end",
+    "top",
+    "right",
+    "bottom",
+    "left",
     "isolation",
     "z-index",
     "order",
@@ -52,7 +253,7 @@ export const GROUPED_PROPS: Record<string, string[]> = {
     "min-width",
   ],
 
-  flexboxGrid: [
+  "flex-layout": [
     "flex",
     "flex-shrink",
     "flex-grow",
@@ -65,6 +266,9 @@ export const GROUPED_PROPS: Record<string, string[]> = {
   spacing: ["border-spacing"],
 
   transforms: [
+    "backface-visibility",
+    "perspective",
+    "perspective-origin",
     "transform-origin",
     "translate",
     "--tw-translate-x",
@@ -82,17 +286,16 @@ export const GROUPED_PROPS: Record<string, string[]> = {
     "transform",
   ],
 
-  interactions: [
+  interactivity: [
+    "field-sizing",
     "animation",
     "cursor",
+    "pointer-events",
     "touch-action",
     "--tw-pan-x",
     "--tw-pan-y",
     "--tw-pinch-zoom",
     "resize",
-  ],
-
-  scrollSnap: [
     "scroll-snap-type",
     "--tw-scroll-snap-strictness",
     "scroll-snap-align",
@@ -113,9 +316,9 @@ export const GROUPED_PROPS: Record<string, string[]> = {
     "scroll-padding-left",
   ],
 
-  listStyles: ["list-style-position", "list-style-type", "list-style-image"],
+  "list-layout": ["list-style-position", "list-style-type", "list-style-image"],
 
-  layout: [
+  "flex/grid-layout": [
     "appearance",
     "columns",
     "break-before",
@@ -150,7 +353,7 @@ export const GROUPED_PROPS: Record<string, string[]> = {
     "justify-self",
   ],
 
-  overflowControl: [
+  overflow: [
     "overflow",
     "overflow-x",
     "overflow-y",
@@ -160,7 +363,7 @@ export const GROUPED_PROPS: Record<string, string[]> = {
     "scroll-behavior",
   ],
 
-  textWrapping: [
+  "text-wrap": [
     "text-overflow",
     "hyphens",
     "white-space",
@@ -247,7 +450,7 @@ export const GROUPED_PROPS: Record<string, string[]> = {
     "padding-left",
   ],
 
-  textStyles: [
+  "text-style": [
     "text-align",
     "text-indent",
     "vertical-align",
@@ -270,16 +473,17 @@ export const GROUPED_PROPS: Record<string, string[]> = {
     "-webkit-font-smoothing",
   ],
 
-  accentColors: [
+  "theme-color": [
     "placeholder-color",
     "--tw-placeholder-opacity",
     "caret-color",
     "accent-color",
+    'color-scheme',
   ],
 
   transparency: ["opacity", "background-blend-mode", "mix-blend-mode"],
 
-  outlineEffects: [
+  "outline-style": [
     "box-shadow",
     "--tw-shadow",
     "--tw-shadow-color",
@@ -321,7 +525,7 @@ export const GROUPED_PROPS: Record<string, string[]> = {
     "backdrop-filter",
   ],
 
-  transitionsAnimations: [
+  "transitions-animations": [
     "transition-property",
     "transition-delay",
     "transition-duration",
@@ -329,16 +533,19 @@ export const GROUPED_PROPS: Record<string, string[]> = {
     "will-change",
     "contain",
     "content",
-    "forced-color-adjust",
   ],
+
+  "Accessibility": [
+    "forced-color-adjust",
+  ]
 };
 
-export const GROUP_KEYS = Object.keys(GROUPED_PROPS);
+export const GROUP_KEYS = Object.keys(GROUPED_PROPS2);
 export const RULE_INDEX = GROUP_KEYS.length + 1;
 export const ETC_INDEX = GROUP_KEYS.length + 2;
 
 export const FLAT_PROPS: string[] = [
-  ...Object.values(GROUPED_PROPS).flatMap((prop) => prop),
+  ...Object.values(GROUPED_PROPS2).flatMap((prop) => prop),
 ];
 
 export type PropRanking = {
@@ -348,7 +555,7 @@ export type PropRanking = {
 };
 
 export function getPropertyDetails(cssProperty): PropRanking | null {
-  const entries = Object.entries(GROUPED_PROPS);
+  const entries = Object.entries(GROUPED_PROPS2);
   for (let i = 0; i < entries.length; i++) {
     const [label, properties] = entries[i];
     let subIndex = properties.indexOf(cssProperty);

@@ -1,7 +1,7 @@
 import { StringLiteral as BabelStringLiteral } from "@babel/types";
 import { TSESTree } from "@typescript-eslint/types";
 import { ParserOptions, Printer } from "prettier";
-import { __unstable__loadDesignSystem } from "tailwindcss";
+import { __unstable__loadDesignSystem, compileAst } from "tailwindcss";
 
 export type StringLiteral = TSESTree.StringLiteral | BabelStringLiteral;
 export type TemplateLiteral = TSESTree.TemplateLiteral;
@@ -25,13 +25,14 @@ export interface TransformerContext {
   changes: { text: string; loc: any }[];
 }
 
-export type DesignSystem = ReturnType<typeof __unstable__loadDesignSystem> & {
-  generateRules?: (
-    candidates: string[],
-    context: ReturnType<typeof __unstable__loadDesignSystem>,
-    isSorting?: boolean
-  ) => string[];
-};
+export type DesignSystem = Awaited<
+  ReturnType<typeof __unstable__loadDesignSystem>
+> ;
+
+export type TailwindAst = ReturnType<
+  Awaited<ReturnType<typeof compileAst>>["build"]
+>[number];
+
 export interface TransformerEnv {
   context: DesignSystem;
   // customizations?: Customizations;
@@ -39,6 +40,7 @@ export interface TransformerEnv {
   options: ParserOptions;
 }
 
+export type Candidate = Parameters<DesignSystem["compileAstNodes"]>[0];
 export interface ContextContainer {
   context: any;
   generateRules: () => any;

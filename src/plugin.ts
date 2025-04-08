@@ -1,4 +1,4 @@
-import { Parser, ParserOptions } from "prettier";
+import { Parser, ParserOptions, Printer } from "prettier";
 import { parsers as babelParsers } from "prettier/plugins/babel";
 import { parsers as tsParsers } from "prettier/plugins/typescript";
 import { getTailwindConfig } from "./config.js";
@@ -12,15 +12,24 @@ const defaultParsers = {
 };
 
 //TODO: Add in options for newline threshold?
-export class TypescriptPlugin {
-  parser: Parser<Node>;
+export class TailLinePlugin {
   printer: CustomPrinter;
+  parser: Parser<Node>;
+  printers: Record<string, Printer>;
+  parsers: Record<string, Parser<Node>>;
   config?: DesignSystem;
 
   constructor(parserFormat: string, printerFormat: string) {
     this.createParser = this.createParser.bind(this);
     this.parser = this.createParser(parserFormat);
     this.printer = new CustomPrinter(printerFormat);
+    this.printers = {
+      [printerFormat]: this.printer,
+    };
+    
+    this.parsers = {
+      [parserFormat]: this.parser,
+    };
   }
 
   createParser(parserFormat): Parser {
@@ -50,3 +59,6 @@ export class TypescriptPlugin {
     };
   }
 }
+
+const TailLinePluginIntsance = new TailLinePlugin("typescript", "estree");
+export default TailLinePluginIntsance;

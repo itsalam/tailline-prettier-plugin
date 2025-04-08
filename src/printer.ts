@@ -100,7 +100,7 @@ export class CustomPrinter implements Printer<Node> {
     const delimiter = ",";
     if (isClassNameFunction(path, ast)) {
       const stringArgs = ast.arguments.filter((arg) => arg.type === "Literal");
-      console.log(stringArgs)
+
       let binaryArgs = [];
       const templateArgs = ast.arguments.filter((arg) => arg.type === "TemplateLiteral" && arg.expressions.length === 0);
       
@@ -117,7 +117,6 @@ export class CustomPrinter implements Printer<Node> {
         .map((arg: TSESTree.Literal) => arg.value)
         .join(" ");
       const templateValues = templateArgs.map((temp) => (temp as TemplateLiteral).quasis.map((q) => q.value.raw).join(" ")).join(" ");
-      console.log({value: literalValues})
       return group([
         (ast.callee as TSESTree.Identifier).name,
         "(",
@@ -158,7 +157,8 @@ export class CustomPrinter implements Printer<Node> {
                   if (
                     !(
                       argAst.type === "Literal" ||
-                      argAst.type === "BinaryExpression"
+                      argAst.type === "BinaryExpression" || 
+                      argAst.type === "TemplateLiteral"
                     )
                   ) {
                     return this.getDefaultPrinter(options).print(

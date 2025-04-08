@@ -1,6 +1,7 @@
 import { ParserOptions, parse } from "@typescript-eslint/parser";
+import jest from "jest-mock";
 import prettier from "prettier";
-import TypescriptPlugin from "./index";
+import TailLinePlugin from "./plugin.js";
 
 function collectStringLiterals(node, literals = []) {
   if (node.type === "Literal" && typeof node.value === "string") {
@@ -57,7 +58,7 @@ Make things float in air
     });
     const formattedWithPlugin = await prettier.format(code, {
       parser: "typescript",
-      plugins: [TypescriptPlugin],
+      plugins: [TailLinePlugin],
     });
 
     parse(formattedWithPlugin, tsParserOptions);
@@ -65,16 +66,35 @@ Make things float in air
   });
 });
 
+global.console = {
+  ...console,
+  // uncomment to ignore a specific log level
+  // log: jest.fn(),
+  // debug: jest.fn(),
+  // info: jest.fn(),
+  // warn: jest.fn(),
+  error: jest.fn(),
+};
+
+const getPluginDiff = async (code: string) => {
+  const formatted = await prettier.format(code, {
+    parser: "typescript",
+  });
+  const formattedWithPlugin = await prettier.format(code, {
+    parser: "typescript",
+    plugins: [TailLinePlugin],
+  });
+
+  return {
+    formatted,
+    formattedWithPlugin
+  }
+}
+
 describe("Changes on..", () => {
   test("className attribute in bounds but unsorted", async () => {
     const code = `<div className="w-full mt-4"/>`;
-    const formatted = await prettier.format(code, {
-      parser: "typescript",
-    });
-    const formattedWithPlugin = await prettier.format(code, {
-      parser: "typescript",
-      plugins: [TypescriptPlugin],
-    });
+    const { formatted, formattedWithPlugin } = await getPluginDiff(code);
 
     parse(formattedWithPlugin, tsParserOptions);
     expect(formattedWithPlugin).toBe(formatted);
@@ -85,13 +105,9 @@ describe("Changes on..", () => {
     let formatted;
     let formattedWithPlugin;
     beforeAll(async () => {
-      formatted = await prettier.format(code, {
-        parser: "typescript",
-      });
-      formattedWithPlugin = await prettier.format(code, {
-        parser: "typescript",
-        plugins: [TypescriptPlugin],
-      });
+      const diff = await getPluginDiff(code);
+      formatted = diff.formatted;
+      formattedWithPlugin = diff.formattedWithPlugin;
     });
 
     test("raw and plugin output should not be the same", async () => {
@@ -120,14 +136,7 @@ describe("Changes on..", () => {
 
   test("className attribute unsorted and OOBs is not affected", async () => {
     const code = `<div className="rounded-xl bg-black dark:bg-white py-2 mx-4 text-xs font-bold dark:text-black text-white"/>`;
-    const formatted = await prettier.format(code, {
-      parser: "typescript",
-    });
-    const formattedWithPlugin = await prettier.format(code, {
-      parser: "typescript",
-      plugins: [TypescriptPlugin],
-    });
-
+    const { formatted, formattedWithPlugin } = await getPluginDiff(code);
     expect(formattedWithPlugin).toBe(formatted);
   });
 
@@ -139,13 +148,7 @@ describe("Changes on..", () => {
     className={cn("z-50 w-64 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",className)}
     {...props}
   />`;
-    const formatted = await prettier.format(code, {
-      parser: "typescript",
-    });
-    const formattedWithPlugin = await prettier.format(code, {
-      parser: "typescript",
-      plugins: [TypescriptPlugin],
-    });
+    const { formatted, formattedWithPlugin } = await getPluginDiff(code);
 
     const rawResults = parse(formatted, tsParserOptions);
     const rawLiterals = collectStringLiterals(rawResults).flatMap((literal) =>
@@ -173,13 +176,7 @@ describe("Changes on..", () => {
     className={cn("z-50 w-64 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2")}
     {...props}
   />`;
-    const formatted = await prettier.format(code, {
-      parser: "typescript",
-    });
-    const formattedWithPlugin = await prettier.format(code, {
-      parser: "typescript",
-      plugins: [TypescriptPlugin],
-    });
+    const { formatted, formattedWithPlugin } = await getPluginDiff(code);
 
     const rawResults = parse(formatted, tsParserOptions);
     const rawLiterals = collectStringLiterals(rawResults).flatMap((literal) =>
@@ -229,16 +226,8 @@ describe("Changes on..", () => {
     }`;
 
     test("classNames with no updates", async () => {
-      const formatted = await prettier.format(codeWithClassNameInsert(""), {
-        parser: "typescript",
-      });
-      const formattedWithPlugin = await prettier.format(
-        codeWithClassNameInsert(""),
-        {
-          parser: "typescript",
-          plugins: [TypescriptPlugin],
-        }
-      );
+      const { formatted, formattedWithPlugin } = await getPluginDiff(codeWithClassNameInsert(""));
+
       const rawResults = parse(formatted, tsParserOptions);
       const rawLiterals = collectStringLiterals(rawResults).flatMap((literal) =>
         literal.split(" ")
@@ -253,19 +242,7 @@ describe("Changes on..", () => {
     });
 
     test("classNames with with updates", async () => {
-      const formatted = await prettier.format(
-        codeWithClassNameInsert(" flex"),
-        {
-          parser: "typescript",
-        }
-      );
-      const formattedWithPlugin = await prettier.format(
-        codeWithClassNameInsert(" flex"),
-        {
-          parser: "typescript",
-          plugins: [TypescriptPlugin],
-        }
-      );
+      const { formatted, formattedWithPlugin } = await getPluginDiff(codeWithClassNameInsert(" flex"));
 
       const rawResults = parse(formatted, tsParserOptions);
 
@@ -303,16 +280,9 @@ describe("Changes on..", () => {
     }`;
 
     test("classNames with no updates", async () => {
-      const formatted = await prettier.format(codeWithClassNameInsert(""), {
-        parser: "typescript",
-      });
-      const formattedWithPlugin = await prettier.format(
-        codeWithClassNameInsert(""),
-        {
-          parser: "typescript",
-          plugins: [TypescriptPlugin],
-        }
-      );
+      const code = codeWithClassNameInsert("");
+      const { formatted, formattedWithPlugin } = await getPluginDiff(code);
+
       const rawResults = parse(formatted, tsParserOptions);
       const rawLiterals = collectStringLiterals(rawResults).flatMap((literal) =>
         literal.split(" ")
@@ -327,19 +297,8 @@ describe("Changes on..", () => {
     });
 
     test("classNames with with updates", async () => {
-      const formatted = await prettier.format(
-        codeWithClassNameInsert(" flex"),
-        {
-          parser: "typescript",
-        }
-      );
-      const formattedWithPlugin = await prettier.format(
-        codeWithClassNameInsert(" flex"),
-        {
-          parser: "typescript",
-          plugins: [TypescriptPlugin],
-        }
-      );
+      const code = codeWithClassNameInsert(" flex");
+      const { formatted, formattedWithPlugin } = await getPluginDiff(code);
 
       const rawResults = parse(formatted, tsParserOptions);
 
@@ -381,35 +340,17 @@ describe("Changes on..", () => {
     }`;
 
     test("plugin has no updates with no string literals", async () => {
-      const formatted = await prettier.format(codeWithClassNameInsert(), {
-        parser: "typescript",
-      });
-      const formattedWithPlugin = await prettier.format(
-        codeWithClassNameInsert(),
-        {
-          parser: "typescript",
-          plugins: [TypescriptPlugin],
-        }
-      );
+      const code = codeWithClassNameInsert();
+      const { formatted, formattedWithPlugin } = await getPluginDiff(code);
+
       expect(formatted.replace(/\s/g, "").length).toBe(
         formattedWithPlugin.replace(/\s/g, "").length + 1
       );
     });
 
     test("plugin has updates with string literals", async () => {
-      const formatted = await prettier.format(
-        codeWithClassNameInsert([`"z-50 w-64 rounded-md border"`]),
-        {
-          parser: "typescript",
-        }
-      );
-      const formattedWithPlugin = await prettier.format(
-        codeWithClassNameInsert([`"z-50 w-64 rounded-md border"`]),
-        {
-          parser: "typescript",
-          plugins: [TypescriptPlugin],
-        }
-      );
+      const code = codeWithClassNameInsert([`"z-50 w-64 rounded-md border"`]);
+      const { formatted, formattedWithPlugin } = await getPluginDiff(code);
 
       const rawResults = parse(formatted, tsParserOptions);
       const rawRes = collectStringLiterals(rawResults);

@@ -1,4 +1,3 @@
-import clearModule from "clear-module";
 import escalade from "escalade/sync";
 import * as fs from "fs/promises";
 import { createRequire } from "module";
@@ -46,6 +45,7 @@ export async function getTailwindConfig(options) {
   let baseDir = await getBaseDir(options);
 
   let twPkgPath = sourceToPathMap.get(key);
+
   if (twPkgPath === undefined) {
     twPkgPath = await getConfigPath(options, baseDir);
     sourceToPathMap.set(key, twPkgPath);
@@ -105,11 +105,7 @@ async function loadTailwindConfig(
   tailwindConfigPath,
   entryPoint
 ): Promise<DesignSystem> {
-  let createContext;
-  let generateRules;
-  let resolveConfig;
-  let loadConfig;
-  let tailwindConfig = {};
+
 
   const getModulePath = (pathStr) =>
     path.dirname(
@@ -121,65 +117,20 @@ async function loadTailwindConfig(
   let tw4 = await loadTWV4(
     baseDir,
     getModulePath("tailwindcss/package.json"),
-    entryPoint
+    entryPoint,
+    tailwindConfigPath
   );
 
-  if (tw4) {
-    return tw4;
-  }
-  // Load v3
-  try {
-    resolveConfig = (
-      await import(
-        path.join(
-          getModulePath("tailwindcss/resolveConfig.js"),
-          "resolveConfig.js"
-        )
-      )
-    ).default;
-    ({ createContext } = (
-      await import(
-        path.join(getModulePath("tailwindcss"), "lib", "setupContextUtils.js")
-      )
-    ).default);
-    ({ generateRules } = (
-      await import(
-        path.join(getModulePath("tailwindcss"), "lib", "generateRules.js")
-      )
-    ).default);
-
-    loadConfig = (
-      await import(
-        path.join(getModulePath("tailwindcss/loadConfig"), "loadConfig.js")
-      )
-    ).default;
-  } catch {}
-  if (tailwindConfigPath) {
-    clearModule(tailwindConfigPath);
-    const loadedConfig = loadConfig(tailwindConfigPath);
-    tailwindConfig = loadedConfig.default ?? loadedConfig;
-  }
-  // @ts-ignore
-  tailwindConfig.content = ["no-op"];
-  const parseCandidate = (candidate) => {
-    return createContext(resolveConfig(tailwindConfig)).parseCandidate(
-      candidate
-    );
-  };
-  let context = {
-    ...createContext(resolveConfig(tailwindConfig)),
-    generateRules,
-  };
-  return context as DesignSystem;
+  return tw4;
 }
 
-async function loadTWV4(baseDir, pkgDir, entryPoint) {
+async function loadTWV4(baseDir, pkgDir, entryPoint, tailwindConfigPath) {
   // Import Tailwind — if this is v4 it'll have APIs we can use directly
   let pkgPath = localRequire.resolve("tailwindcss", {
     paths: [baseDir],
   });
-  let tw = await import(pathToFileURL(pkgPath).toString());
-
+  let tw = (await import(pathToFileURL(pkgPath).toString())).default;
+  
   // This is not Tailwind v4
   if (!tw.__unstable__loadDesignSystem) {
     return null;
@@ -195,8 +146,9 @@ async function loadTWV4(baseDir, pkgDir, entryPoint) {
 
   // Load the design system and set up a compatible context object that is
   // usable by the rest of the plugin
-  let design = tw.__unstable__loadDesignSystem(result.css) as ReturnType<
+  let design = tw.__unstable__loadDesignSystem(result.css, {base: tailwindConfigPath}) as ReturnType<
     typeof __unstable__loadDesignSystem
   >;
+ 
   return design;
 }

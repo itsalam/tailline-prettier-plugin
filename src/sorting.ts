@@ -1,10 +1,11 @@
 import { Doc, doc } from "prettier";
 import {
+  ETC_INDEX,
   PropRanking,
   RULE_INDEX,
   getPropertyDetails as getPropertyRanks,
-} from "./grouped-classes.js";
-import { Node, StringLiteral, TransformerEnv } from "./types.js";
+} from "./groupedClasses.js";
+import { Node, StringLiteral, TailwindAst, TransformerEnv } from "./types.js";
 import { DefaultMap } from "./utils.js";
 
 const { line, hardline, join, group, indent, lineSuffix, fill, ifBreak, trim } =
@@ -60,13 +61,19 @@ export function sortClasses(
   return result;
 }
 
+function formatGroupString(str) {
+  return str
+    .replace(/-/g, " ") // replace dashes with spaces
+    .replace(/(^|[^a-zA-Z])([a-z])/g, (match, p1, p2) => p1 + p2.toUpperCase());
+}
+
 const createMultilineClassString = (
   classes: string[],
   { env, delimiter = ", ", quoteChar }: SortOptions
 ): Doc => {
   const sortedClasses = [...Object.entries(sortClassList(classes, { env }))];
   let result: Doc[] = [];
-  const currClassNames: string[] = [...sortedClasses[0][1]];
+  const currClassNames: string[] = [...sortedClasses[0]?.[1]].filter(Boolean);
   const currGroups: string[] = [sortedClasses[0][0]].filter(Boolean);
   const commentStr = (currGroups: string[]) =>
     lineSuffix(` // ${currGroups.filter(Boolean).join(", ")}`);
@@ -83,7 +90,8 @@ const createMultilineClassString = (
       ).contents.toString().length > env.options.printWidth ||
       result.length === 0
     ) {
-      currGroups.length && result.push(commentStr(currGroups));
+      currGroups.length &&
+        result.push(commentStr(currGroups.map(formatGroupString)));
       result.push(
         quoteChar,
         fill(
@@ -105,13 +113,15 @@ const createMultilineClassString = (
     }
     // write the current group to the result
     currClassNames.push(...groupClassNames);
-    sortedClasses[i][0].length && currGroups.push(sortedClasses[i][0]);
+    sortedClasses[i][0].length &&
+      currGroups.push(formatGroupString(sortedClasses[i][0]));
 
     // Check if it's the last iteration to append the remaining classes and groups
   }
   if (currClassNames.length) {
     result.push([`${quoteChar}`, join(" ", currClassNames), `${quoteChar}`]);
-    currGroups.length && result.push(commentStr(currGroups));
+    currGroups.length &&
+      result.push(commentStr(currGroups.map(formatGroupString)));
   }
   return group(result);
 };
@@ -126,38 +136,43 @@ export function sortClassList(
   { env }: SortOptions
 ): Record<string, string[]> {
   let classNamesWithOrder = env.context.getClassOrder(classList);
+
   const groups = new DefaultMap<number, ClassNameWithOrder[]>(() => []);
   classNamesWithOrder.forEach(([className]) => {
     try {
       let property;
-      let res;
+      let nodes: TailwindAst[];
       let propRank;
-      if (!env.context.parseCandidate) {
-        property = env.context
-          .generateRules([className], env.context, false)
-          // @ts-ignore
-          .map((c) => c[1].nodes[0].prop)[0];
-        propRank = getPropertyRanks(property);
-      } else {
-        const candidate = env.context.parseCandidate(className);
-        // const variant = env.context.parseVariant(className);
-        // Figure out variants, wait for tailwind v4 documentation?
-        // if (variant) {
-        //   const func = env.context.utilities.get(variant.root);
-        // }
-        // @ts-ignore
-        const func = env.context.utilities.get(candidate?.root);
-        res = func?.compileFn?.(candidate);
-        property = res?.[0].property ?? null;
-        propRank =
-          getPropertyRanks(property) ?? getPropertyRanks(res?.[0].value);
-      }
+      let node;
+     
+      const candidates = env.context.parseCandidate(className);
+      const candidateNodes = candidates.flatMap((candidate) => env.context.utilities.get(candidate.root).flatMap((util) => util?.compileFn(candidate)));
+      nodes = candidateNodes.filter(Boolean);
+      const flattenNodesValues = (node: TailwindAst): TailwindAst[] =>
+        "nodes" in node ? node.nodes.flatMap(flattenNodesValues) : [node];
+      console.log({ className, candidateNodes, candidates, nodes, })
+      if (nodes.length) {
+        nodes = nodes
+        .flatMap(flattenNodesValues)
+        .filter((node) => "property" in node || "value" in node);
+
+        node = nodes.find((node) => getPropertyRanks(node.property) || getPropertyRanks(node.value));
+
+        property = node?.property
+ 
+        propRank = getPropertyRanks(property) 
+      } 
+
       if (!property || !propRank) {
-        const currGroup = groups.get(-1);
+        const currGroup = groups.get(ETC_INDEX);
         groups.set(
-          -1,
+          ETC_INDEX,
           currGroup.concat({
-            props: { globalRank: -1, label: "", subIndex: currGroup.length },
+            props: {
+              globalRank: ETC_INDEX,
+              label: "Etc.",
+              subIndex: currGroup.length,
+            },
             className,
           })
         );
@@ -168,7 +183,7 @@ export function sortClassList(
             propRank.globalRank,
             currGroup.concat({ props: propRank, className })
           );
-        } else if (res?.kind === "rule") {
+        } else if (node?.kind === "rule") {
           const currGroup = groups.get(RULE_INDEX);
           groups.set(
             RULE_INDEX,
@@ -183,10 +198,21 @@ export function sortClassList(
           );
         }
       }
-    } catch (e) {
-      console.error(e);
-      console.error(className);
-      console.error(env.context.parseCandidate(className));
+    } catch (error) {
+      const candidate = env.context.parseCandidate(className);
+      console.error({ error });
+      const currGroup = groups.get(ETC_INDEX);
+      groups.set(
+        ETC_INDEX,
+        currGroup.concat({
+          props: {
+            globalRank: ETC_INDEX,
+            label: "",
+            subIndex: currGroup.length,
+          },
+          className,
+        })
+      );
     }
   });
 
