@@ -43,9 +43,9 @@ export function sortClasses(
     classes.pop();
   }
   const needsLineBreak =
-    (node.loc?.start.column || 0) + classStr.length > env.options.printWidth;
+    (node.loc.start.column || 0) + classStr.length > env.options.printWidth;
   if (needsLineBreak) {
-    result = createMultilineClassString(classes, { env, delimiter, quoteChar });
+    result = createMultilineClassString(classes, node.loc.start.column, { env, delimiter, quoteChar });
   } else {
     result = group(
       [
@@ -70,6 +70,7 @@ function formatGroupString(str) {
 
 const createMultilineClassString = (
   classes: string[],
+  lineStart: number,
   { env, delimiter = ", ", quoteChar }: SortOptions
 ): Doc => {
   const sortedClasses = [...Object.entries(sortClassList(classes, { env }))];
@@ -78,41 +79,52 @@ const createMultilineClassString = (
   const currGroups: string[] = [sortedClasses[0][0]].filter(Boolean);
   const commentStr = (currGroups: string[]) =>
     lineSuffix(` // ${currGroups.filter(Boolean).join(", ")}`);
+  const printClasses = (classes: string[]) => [quoteChar,
+    fill(
+      join(
+        ifBreak(
+          [trim, `${quoteChar}${delimiter}`, line, `${quoteChar}`],
+          " ",
+
+        ),
+        classes.flatMap((str) => str)
+      )
+    ),
+    trim,
+    quoteChar]
+  // console.log(sortedClasses)
+  let currFormattedString = doc.printer.printDocToString(
+    [
+      ...currClassNames,
+      commentStr(currGroups).contents.toString(),
+      sortedClasses[0][0],
+    ].join(" ")
+  , env.options).formatted
   for (let i = 1; i < sortedClasses.length; i++) {
-    const groupClassNames = sortedClasses[i][1];
-    if (
-      indent(
-        [
-          ...currClassNames,
-          ...groupClassNames,
-          commentStr(currGroups).contents.toString(),
-          sortedClasses[i][0],
-        ].join(" ")
-      ).contents.toString().length > env.options.printWidth ||
-      result.length === 0
+
+    // If current string exceeds print width, break it up
+    if ((currFormattedString.length + lineStart) > env.options.printWidth 
     ) {
       currGroups.length &&
         result.push(commentStr(currGroups.map(formatGroupString)));
-      result.push(
-        quoteChar,
-        fill(
-          join(
-            ifBreak(
-              [trim, `${quoteChar}${delimiter}`, line, `${quoteChar}`],
-              " "
-            ),
-            currClassNames.flatMap((str) => str)
-          )
-        ),
-        trim,
-        quoteChar
-      );
+      const remainder = printClasses(currClassNames)
+      result.push(remainder);
       result.push(delimiter);
       result.push(hardline);
       currGroups.splice(0, currGroups.length);
       currClassNames.splice(0, currClassNames.length);
     }
     // write the current group to the result
+    const groupClassNames = sortedClasses[i][1];
+    currFormattedString = doc.printer.printDocToString(
+      [
+        ...currClassNames,
+        ...groupClassNames,
+        commentStr(currGroups).contents.toString(),
+        sortedClasses[i][0],
+      ].join(" ")
+    , env.options).formatted
+
     currClassNames.push(...groupClassNames);
     sortedClasses[i][0].length &&
       currGroups.push(formatGroupString(sortedClasses[i][0]));
@@ -120,9 +132,10 @@ const createMultilineClassString = (
     // Check if it's the last iteration to append the remaining classes and groups
   }
   if (currClassNames.length) {
-    result.push([`${quoteChar}`, join(" ", currClassNames), `${quoteChar}`]);
     currGroups.length &&
       result.push(commentStr(currGroups.map(formatGroupString)));
+    const remainder = printClasses(currClassNames);
+    result.push(remainder);
   }
   return group(result);
 };
