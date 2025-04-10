@@ -3,7 +3,8 @@ import {
   ETC_INDEX,
   PropRanking,
   RULE_INDEX,
-  getPropertyDetails as getPropertyRanks,
+  getGlobalRank,
+  getPropertyDetails
 } from "./groupedClasses.js";
 import { Node, StringLiteral, TailwindAst, TransformerEnv } from "./types.js";
 import { DefaultMap } from "./utils.js";
@@ -131,6 +132,50 @@ type ClassNameWithOrder = {
   props: PropRanking;
 };
 
+const extractProps = (className: string, env: TransformerEnv) => {
+  const getNodes = (className: string, env: TransformerEnv) => {
+    const candidates = env.context.parseCandidate(className);
+    const candidateNodes = candidates.flatMap((candidate) => env.context.utilities.get(candidate.kind === "arbitrary" ? candidate.property : candidate.root).flatMap((util) => util?.compileFn(candidate)));
+    return candidateNodes.filter(Boolean);
+  }
+  
+  const getNodesPolyfill = (className: string, env: TransformerEnv) => {
+   return env.context.generateRules(new Set([className]), env.context)?.[0]?.[1].nodes ?? [];
+  }
+
+  const getProperty = (node) => {
+    return (env.context.parseCandidate? node.property : node.prop) ?? node.value;
+  }
+        // console.log(classCache.get("bg-zinc-50")[0][1]) .nodes[].prop has the same value?
+        let property;
+        let nodes: TailwindAst[] =  env.context.parseCandidate ? getNodes(className, env) : getNodesPolyfill(className, env);
+        let propRank;
+        let node;
+
+        // const nodes = env.context.classCache.filter(Boolean);
+        const flattenNodesValues = (node: TailwindAst): TailwindAst[] =>
+          "nodes" in node ? node.nodes.flatMap(flattenNodesValues) : [node];
+        // console.log({ className, candidateNodes, candidates, nodes, })
+        if (nodes.length) {
+          nodes = nodes
+          .flatMap(flattenNodesValues)
+          .filter(getProperty);
+          const nodeRanking = nodes.reduce((res, node) => {
+            const rank = getGlobalRank(getProperty(node));
+            if (rank && res.lowestRank > rank) {
+              res.lowestRank = rank;
+              res.node = node;
+            }
+            return res;
+          }, { node: null, lowestRank: Infinity });
+          node = nodeRanking.node;
+          property = node ? getProperty(node) : null;
+          propRank = getPropertyDetails(property);
+        }
+      
+        return { property, propRank, node };
+}
+
 export function sortClassList(
   classList,
   { env }: SortOptions
@@ -140,28 +185,7 @@ export function sortClassList(
   const groups = new DefaultMap<number, ClassNameWithOrder[]>(() => []);
   classNamesWithOrder.forEach(([className]) => {
     try {
-      let property;
-      let nodes: TailwindAst[];
-      let propRank;
-      let node;
-     
-      const candidates = env.context.parseCandidate(className);
-      const candidateNodes = candidates.flatMap((candidate) => env.context.utilities.get(candidate.root).flatMap((util) => util?.compileFn(candidate)));
-      nodes = candidateNodes.filter(Boolean);
-      const flattenNodesValues = (node: TailwindAst): TailwindAst[] =>
-        "nodes" in node ? node.nodes.flatMap(flattenNodesValues) : [node];
-      console.log({ className, candidateNodes, candidates, nodes, })
-      if (nodes.length) {
-        nodes = nodes
-        .flatMap(flattenNodesValues)
-        .filter((node) => "property" in node || "value" in node);
-
-        node = nodes.find((node) => getPropertyRanks(node.property) || getPropertyRanks(node.value));
-
-        property = node?.property
- 
-        propRank = getPropertyRanks(property) 
-      } 
+      const { property, propRank, node } = extractProps(className, env)
 
       if (!property || !propRank) {
         const currGroup = groups.get(ETC_INDEX);
@@ -199,8 +223,7 @@ export function sortClassList(
         }
       }
     } catch (error) {
-      const candidate = env.context.parseCandidate(className);
-      console.error({ error });
+      console.info(error);
       const currGroup = groups.get(ETC_INDEX);
       groups.set(
         ETC_INDEX,

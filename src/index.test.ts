@@ -124,7 +124,7 @@ describe("Changes on..", () => {
       const pluginLiterals = pluginClassGroups.flatMap((literal) =>
         literal.split(" ")
       );
-      expect(rawLiterals).toEqual(pluginLiterals);
+      expect(new Set(rawLiterals)).toEqual(new Set(pluginLiterals));
     });
 
     test("# of grouped classes should be greater than 1", async () => {

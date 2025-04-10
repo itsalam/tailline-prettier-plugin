@@ -1,3 +1,4 @@
+import clearModule from "clear-module";
 import escalade from "escalade/sync";
 import * as fs from "fs/promises";
 import { createRequire } from "module";
@@ -5,7 +6,6 @@ import path from "path";
 import postcss from "postcss";
 import postcssImport from "postcss-import";
 import prettier from "prettier";
-import { __unstable__loadDesignSystem } from "tailwindcss";
 import { pathToFileURL } from "url";
 import { DesignSystem } from "./types";
 
@@ -106,7 +106,6 @@ async function loadTailwindConfig(
   entryPoint
 ): Promise<DesignSystem> {
 
-
   const getModulePath = (pathStr) =>
     path.dirname(
       localRequire.resolve(pathStr, {
@@ -120,8 +119,59 @@ async function loadTailwindConfig(
     entryPoint,
     tailwindConfigPath
   );
+  if (tw4) {
+    return tw4;
+  }
+  let resolveConfig;
+  let createContext;
+  let tailwindConfig;
+  let generateRules;
+  let loadConfig;
+    // Load v3
+    try {
+      resolveConfig = (
+        await import(
+          path.join(
+            getModulePath("tailwindcss/resolveConfig.js"),
+            "resolveConfig.js"
+          )
+        )
+      ).default;
+      ({ createContext } = (
+        await import(
+          path.join(getModulePath("tailwindcss"), "lib", "setupContextUtils.js")
+        )
+      ).default);
+      ({ generateRules } = (
+        await import(
+          path.join(getModulePath("tailwindcss"), "lib", "generateRules.js")
+        )
+      ).default);
+  
 
-  return tw4;
+      loadConfig = (
+        await import(
+          path.join(getModulePath("tailwindcss/loadConfig"), "loadConfig.js")
+        )
+      ).default;
+    } catch (e) {
+      // If we can't load the v3 APIs, then we can't load the config
+      console.error("Failed to load Tailwind v3 APIs", e);
+      return null;
+    }
+
+    if (tailwindConfigPath) {
+      clearModule(tailwindConfigPath);
+      const loadedConfig = loadConfig(tailwindConfigPath);
+      tailwindConfig = loadedConfig.default ?? loadedConfig;
+    }
+    tailwindConfig.content = ["no-op"];
+
+    let context = {
+      ...createContext(resolveConfig(tailwindConfigPath)),
+      generateRules,
+    };
+  return context;
 }
 
 async function loadTWV4(baseDir, pkgDir, entryPoint, tailwindConfigPath) {
@@ -147,7 +197,7 @@ async function loadTWV4(baseDir, pkgDir, entryPoint, tailwindConfigPath) {
   // Load the design system and set up a compatible context object that is
   // usable by the rest of the plugin
   let design = tw.__unstable__loadDesignSystem(result.css, {base: tailwindConfigPath}) as ReturnType<
-    typeof __unstable__loadDesignSystem
+    typeof tw.__unstable__loadDesignSystem
   >;
  
   return design;

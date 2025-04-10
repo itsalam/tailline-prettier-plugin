@@ -27,7 +27,8 @@ export interface TransformerContext {
 
 export type DesignSystem = Awaited<
   ReturnType<typeof __unstable__loadDesignSystem>
-> ;
+> & { 
+  generateRules?: (a:Set<string>, b:DesignSystem) => any };
 
 export type TailwindAst = ReturnType<
   Awaited<ReturnType<typeof compileAst>>["build"]
