@@ -41,7 +41,7 @@ export function visit(
 }
 
 export function transformJavaScript(ast: Node, { env }: TransformerContext) {
-  let programNode;
+  let programNode: TSESTree.Program;
   let callExpressions: TSESTree.CallExpression[] = [];
   visit(ast, {
     Program(node: TSESTree.Program) {
@@ -60,7 +60,7 @@ export function transformJavaScript(ast: Node, { env }: TransformerContext) {
   const comments = programNode.comments.filter(
     ({ value, range }) =>
       !(
-        /^[\w\s]+(?:,\s[\w\s]+)*$/.test(value.trim()) &&
+        /^[^,]+(?:,\s[^,]+)*$/.test(value.trim()) &&
         callExpressions.find(({ range: ceRange }) =>
           isRangeWithin(ceRange, range)
         )
